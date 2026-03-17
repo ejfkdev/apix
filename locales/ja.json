@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "APIリクエスト浄化・レスポンス分析ツール"
+  },
+  "root.long": {
+    "other": "apix - APIリクエスト浄化・レスポンス分析ツール\n\nHTTPリクエストの最小化、レスポンスSchemaの取得、圧縮JSONデータの生成をサポート。\nデフォルトでGo HTTPクライアントを使用し、curlのインストールは不要。\n\n主要機能:\n  pure    HTTPリクエストを最小化し、冗長なパラメータを削除\n  mini    圧縮されたJSONレスポンスデータを取得\n  schema  レスポンスのJSON Schema構造を取得\n  clean   HTTPレスポンスキャッシュをクリア\n\n出力形式: json, yaml, toml\n\nクイックスタート:\n  # リクエストを最小化 - レスポンスに影響しないheaders、query、body、cookieを自動削除\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # シリアルモード - パラメータを1つずつテスト（依存関係がある場合に適している）\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # カスタムマッチ条件 - ステータスコードまたはJSONフィールドに基づく\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # 圧縮レスポンスを取得（長い文字列は切り捨て、配列は先頭と末尾のみ保持）\n  apix mini curl https://api.example.com\n\n  # レスポンスSchemaを取得\n  apix schema curl https://api.example.com\n\n  # stdinからJSONを処理\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # キャッシュをクリア\n  apix clean\n\n詳細は \"apix [command] --help\" で確認してください。"
+  },
+
+  "pure.short": {
+    "other": "HTTPリクエストを最小化し、最小リクエストを出力"
+  },
+  "pure.long": {
+    "other": "curlリクエストを実行して浄化し、最小化されたリクエストを出力します。\n\nレスポンス構造に影響しないheaders、query、body、cookieを自動的にテストして削除します。\n複数の出力形式をサポート：curl（デフォルト）、json、http。\n\n式マッチング (-m expr):\n  --match-expr でマッチ条件を指定、以下の変数をサポート：\n    status              HTTPステータスコード (int)\n    content_length      レスポンスボディ長 (int)\n    line_count          レスポンスボディ行数 (int)\n    headers             レスポンスヘッダーmap（大文字小文字を区別しないアクセス）\n    body                レスポンスボディJSONデータ (map/any)\n    $.field             body.fieldのショートカット\n\n  演算子：== != < > <= >= && || ! contains()\n\n  例：\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # デフォルトでcurlコマンドを出力\n  apix pure curl https://httpbin.org/get\n\n  # シリアルモード（1つずつテスト、パラメータに依存関係がある場合に適している）\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # 並列度を制御（レート制限を回避するため並列度を下げる）\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON形式で出力（HARに類似）\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTPプロトコル形式で出力\n  apix pure -t curl https://httpbin.org/get\n\n  # ステータスコードでマッチ（デフォルトはstructure）\n  apix pure -m status curl https://httpbin.org/get\n\n  # 式マッチング：ステータス200かつJSONのcodeが0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # 式マッチング：Content-Typeにjsonを含む（headersアクセスは大文字小文字を区別しない）\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POSTフォームデータを最小化\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Cookieを最小化（各cookieを個別にテスト）\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # カスタムDNS解決 HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # システムcurlを使用しキャッシュを無効化\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "圧縮されたJSONデータを取得"
+  },
+  "mini.long": {
+    "other": "圧縮されたJSONデータを取得します。\n\n長い文字列は自動的に切り捨てられ（>30文字）、配列は先頭と末尾の要素のみ保持されます。\n\n使用法:\n  apix mini [引数] curl [curl引数...]  # HTTPから取得\n  cat data.json | apix mini [引数]      # stdinから読み込み"
+  },
+  "mini.example": {
+    "other": "  # HTTPから圧縮レスポンスを取得\n  apix mini curl https://api.example.com\n\n  # YAML形式で出力\n  apix mini -o yaml curl https://api.example.com\n\n  # stdinからJSONを読み込み\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "レスポンスJSONのデータ構造を取得"
+  },
+  "schema.long": {
+    "other": "レスポンスJSONのデータ構造（JSON Schema）を取得します。\n\nデフォルトでJSON Schema形式を返し、HTTPまたはstdinからデータを読み込むことをサポート。\n\n使用法:\n  apix schema [引数] curl [curl引数...]  # HTTPから取得\n  cat data.json | apix schema [引数]      # stdinから読み込み"
+  },
+  "schema.example": {
+    "other": "  # HTTPからレスポンスSchemaを取得\n  apix schema curl https://api.example.com\n\n  # YAML形式のSchemaを出力\n  apix schema -o yaml curl https://api.example.com\n\n  # stdinからSchemaを生成\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "バージョン番号を表示"
+  },
+  "version.long": {
+    "other": "apixのバージョン情報を表示します。"
+  },
+  "version.example": {
+    "other": "  # バージョンを確認\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "すべてのキャッシュファイルをクリア"
+  },
+  "clean.long": {
+    "other": "一時ディレクトリに保存されているすべてのHTTPレスポンスキャッシュファイルをクリアします。\n\nキャッシュは、繰り返しHTTPリクエストを高速化し、最小化中に同じURLに複数回リクエストすることを避けるために使用されます。\nキャッシュデータが期限切れまたは問題があると思われる場合、このコマンドを実行してください。"
+  },
+  "clean.example": {
+    "other": "  # すべてのキャッシュをクリア\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "JSON形式で出力"
+  },
+  "flag.text": {
+    "other": "HTTPプロトコルテキスト形式で出力"
+  },
+  "flag.serial": {
+    "other": "シリアルモードを使用（1つずつ最小化）"
+  },
+  "flag.resolve": {
+    "other": "カスタムDNS解決 HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "並列度（デフォルト8、1に設定するとシリアル強制）"
+  },
+  "flag.no-cache": {
+    "other": "キャッシュを無効化"
+  },
+  "flag.match-mode": {
+    "other": "マッチモード: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "式マッチ条件（mode=expr時に使用）"
+  },
+  "flag.use-curl": {
+    "other": "システムcurlコマンドを使用"
+  },
+  "flag.pretty": {
+    "other": "読みやすい形式で出力"
+  },
+  "flag.out": {
+    "other": "出力形式: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "インデントスペース数"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [引数] curl [curl引数...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [引数] curl [curl引数...]\n  cat data.json | apix mini [引数]"
+  },
+  "usage.schema": {
+    "other": "apix schema [引数] curl [curl引数...]\n  cat data.json | apix schema [引数]"
+  },
+
+  "msg.params": {
+    "other": "パラメータ:"
+  },
+  "msg.examples": {
+    "other": "例:"
+  },
+  "msg.usage": {
+    "other": "使用法:"
+  },
+  "msg.cache_cleaned": {
+    "other": "キャッシュをクリアしました"
+  }
+}

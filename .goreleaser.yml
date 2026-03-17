@@ -1,0 +1,207 @@
+# GoReleaser 配置 - 全平台构建 + 最大优化
+# 文档: https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: apix
+    main: .
+    binary: apix
+    # 最大优化: 去除符号表、调试信息，使用 upx 压缩
+    ldflags:
+      - -s -w                    # 去除符号表和调试信息
+      - -X main.AppVersion={{.Version}}
+      - -X main.GitCommit={{.Commit}}
+      - -X main.BuildTime={{.Date}}
+    flags:
+      - -trimpath               # 去除构建路径
+      - -tags=osusergo,netgo    # 使用纯 Go 实现
+    asmflags:
+      - all=-trimpath={{.Env.PWD}}
+    gcflags:
+      - -l
+      - -B
+    env:
+      - CGO_ENABLED=0
+    # 支持的主流平台（已移除小众/不稳定平台）
+    targets:
+      # Linux - 主流架构
+      - linux_amd64_v1
+      - linux_386
+      - linux_arm_7
+      - linux_arm64
+      # macOS - Intel & Apple Silicon
+      - darwin_amd64_v2
+      - darwin_arm64
+      # Windows - 主流架构
+      - windows_amd64_v1
+      - windows_386
+      # FreeBSD - 仅主流架构
+      - freebsd_amd64
+      - freebsd_386
+# UPX 压缩（进一步减小体积）
+upx:
+  - enabled: true
+    # 仅压缩 UPX 支持的平台（FreeBSD 格式不受支持）
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - "386"
+    compress: best       # 最佳压缩
+    lzma: true          # 使用 LZMA 算法
+
+archives:
+  - id: apix
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+      {{- with .Arm }}v{{ . }}{{ end }}
+      {{- with .Mips }}_{{ . }}{{ end }}
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+      - docs/**
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+source:
+  enabled: true
+  name_template: '{{ .ProjectName }}_{{ .Version }}_source'
+  format: tar.gz
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: '^feat(\([^)]+\))?:'
+      order: 0
+    - title: Bug fixes
+      regexp: '^fix(\([^)]+\))?:'
+      order: 1
+    - title: Improvements
+      regexp: '^improve(\([^)]+\))?:'
+      order: 2
+    - title: Other
+      order: 999
+
+release:
+  github:
+    owner: ejfkdev
+    name: apix
+  draft: false
+  prerelease: auto
+  name_template: "{{.ProjectName}} {{.Version}}"
+  header: |
+    ## 🚀 安装
+
+    ### 快速安装（自动检测平台）
+
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/ejfkdev/apix/main/install.sh | bash
+    ```
+
+    ### 手动下载
+
+    | 平台 | 常用架构 | 下载 |
+    |------|----------|------|
+    | Linux | amd64 | `apix_{{.Version}}_linux_amd64.tar.gz` |
+    | Linux | arm64 | `apix_{{.Version}}_linux_arm64.tar.gz` |
+    | macOS | amd64 (Intel) | `apix_{{.Version}}_darwin_amd64.tar.gz` |
+    | macOS | arm64 (M1/M2) | `apix_{{.Version}}_darwin_arm64.tar.gz` |
+    | Windows | amd64 | `apix_{{.Version}}_windows_amd64.zip` |
+    | FreeBSD | amd64 | `apix_{{.Version}}_freebsd_amd64.tar.gz` |
+
+    ### 全平台支持
+
+    本次发布包含 **10** 种主流平台架构的二进制文件：
+    - Linux: amd64(v1), 386, arm(v7), arm64
+    - macOS: amd64(v2), arm64
+    - Windows: amd64(v1), 386
+    - FreeBSD: amd64, 386
+
+    ### Go Install
+
+    ```bash
+    go install github.com/ejfkdev/apix@{{.Version}}
+    ```
+
+  footer: |
+    ## 📦 文件校验
+
+    下载后请验证文件完整性：
+
+    ```bash
+    # Linux/macOS
+    sha256sum -c checksums.txt
+
+    # Windows (PowerShell)
+    Get-FileHash apix.exe -Algorithm SHA256
+    ```
+
+    ## 📝 更新日志
+
+    查看完整的更新日志请访问 [CHANGELOG.md](https://github.com/ejfkdev/apix/blob/main/CHANGELOG.md)
+
+    ## 🐛 问题反馈
+
+    遇到问题请在 [Issues](https://github.com/ejfkdev/apix/issues) 页面反馈。
+
+# 发布到 Homebrew (可选)
+# brews:
+#   - name: apix
+#     repository:
+#       owner: ejfkdev
+#       name: homebrew-tap
+#       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+#     homepage: https://github.com/ejfkdev/apix
+#     description: "AI-friendly HTTP request minimization tool"
+#     license: MIT
+#     test: |
+#       system "#{bin}/apix", "version"
+
+# 发布到 Scoop (Windows, 可选)
+# scoops:
+#   - repository:
+#       owner: ejfkdev
+#       name: scoop-bucket
+#     homepage: https://github.com/ejfkdev/apix
+#     description: "AI-friendly HTTP request minimization tool"
+#     license: MIT
+
+# Docker 镜像 (可选)
+# dockers:
+#   - image_template: "ghcr.io/ejfkdev/apix:{{ .Tag }}"
+#     dockerfile: Dockerfile
+#     use: buildx
+#     build_flag_templates:
+#       - "--platform=linux/amd64,linux/arm64"
+#       - "--pull"
+#       - "--label=org.opencontainers.image.created={{.Date}}"
+#       - "--label=org.opencontainers.image.title={{.ProjectName}}"
+#       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+#       - "--label=org.opencontainers.image.version={{.Version}}"
+#       - "--label=org.opencontainers.image.source={{.GitURL}}"

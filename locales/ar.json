@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "أداة تنقية طلبات API وتحليل الاستجابات"
+  },
+  "root.long": {
+    "other": "apix - أداة تنقية طلبات API وتحليل الاستجابات\n\nيدعم تصغير طلبات HTTP، واستخراج مخططات الاستجابة، وتوليد بيانات JSON المضغوطة.\nيستخدم عميل HTTP Go افتراضيًا، ولا يتطلب تثبيت curl.\n\nالوظائف الرئيسية:\n  pure    تصغير طلبات HTTP بإزالة المعلمات الزائدة\n  mini    الحصول على بيانات استجابة JSON مضغوطة\n  schema  الحصول على هيكل مخطط JSON للاستجابة\n  clean   مسح ذاكرة التخزين المؤقت لاستجابات HTTP\n\nتنسيقات الإخراج: json, yaml, toml\n\nالبداية السريعة:\n  # تصغير الطلب - إزالة headers, query, body, cookie التي لا تؤثر على الاستجابة تلقائيًا\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # الوضع التسلسلي - اختبار المعاملات واحدًا تلو الآخر (مناسب للمعاملات ذات التبعيات)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # شرط مطابقة مخصص - بناءً على رمز الحالة أو حقول JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # الحصول على استجابة مضغوطة (السلاسل الطويلة مقطعة، المصفوفات تحتفظ بالأول والأخير فقط)\n  apix mini curl https://api.example.com\n\n  # الحصول على مخطط الاستجابة\n  apix schema curl https://api.example.com\n\n  # معالجة JSON من stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # مسح ذاكرة التخزين المؤقت\n  apix clean\n\nاستخدم \"apix [command] --help\" لمزيد من المعلومات حول أمر."
+  },
+
+  "pure.short": {
+    "other": "تصغير طلب HTTP وإخراج الطلب الأدنى"
+  },
+  "pure.long": {
+    "other": "تنفيذ طلب curl وتنقيته، وإخراج الطلب المصغر.\n\nاختبار وإزالة headers, query, body, cookie التي لا تؤثر على هيكل الاستجابة تلقائيًا.\nيدعم تنسيقات إخراج متعددة: curl (افتراضي)، json، http.\n\nمطابقة التعبيرات (-m expr):\n  استخدم --match-expr لتحديد شروط المطابقة، ويدعم المتغيرات التالية:\n    status              رمز حالة HTTP (int)\n    content_length      طول جسم الاستجابة (int)\n    line_count          عدد أسطر جسم الاستجابة (int)\n    headers             خريطة رؤوس الاستجابة (وصول غير حساس لحالة الأحرف)\n    body                بيانات JSON لجسم الاستجابة (map/any)\n    $.field             اختصار لـ body.field\n\n  العمليات: == != < > <= >= && || ! contains()\n\n  أمثلة:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # إخراج أمر curl الافتراضي\n  apix pure curl https://httpbin.org/get\n\n  # الوضع التسلسلي (اختبار واحد تلو الآخر، للمعاملات ذات التبعيات)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # التحكم في التوازي (تقليل التزامن لتجنب تقييد المعدل)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # إخراج بتنسيق JSON (مشابه لـ HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # إخراج بتنسيق بروتوكول HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # مطابقة رمز الحالة (افتراضي هو structure)\n  apix pure -m status curl https://httpbin.org/get\n\n  # مطابقة التعبير: الحالة 200 وكود JSON يساوي 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # مطابقة التعبير: Content-Type يحتوي على json (وصول headers غير حساس لحالة الأحرف)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # تصغير بيانات نموذج POST\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # تصغير Cookie (اختبار كل cookie على حدة)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # تحليل DNS مخصص HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # استخدام curl النظامي وتعطيل ذاكرة التخزين المؤقت\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "الحصول على بيانات JSON مضغوطة"
+  },
+  "mini.long": {
+    "other": "الحصول على بيانات JSON مضغوطة.\n\nالسلاسل الطويلة يتم تقطيعها تلقائيًا (>30 حرف)، المصفوفات تحتفظ بالعنصر الأول والأخير فقط.\n\nالاستخدام:\n  apix mini [args] curl [curl args...]  # من HTTP\n  cat data.json | apix mini [args]       # من stdin"
+  },
+  "mini.example": {
+    "other": "  # الحصول على استجابة مضغوطة من HTTP\n  apix mini curl https://api.example.com\n\n  # إخراج بتنسيق YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # قراءة JSON من stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "الحصول على هيكل بيانات JSON للاستجابة"
+  },
+  "schema.long": {
+    "other": "الحصول على هيكل بيانات JSON للاستجابة (JSON Schema).\n\nيرجع تنسيق JSON Schema افتراضيًا، ويدعم القراءة من HTTP أو stdin.\n\nالاستخدام:\n  apix schema [args] curl [curl args...]  # من HTTP\n  cat data.json | apix schema [args]       # من stdin"
+  },
+  "schema.example": {
+    "other": "  # الحصول على مخطط الاستجابة من HTTP\n  apix schema curl https://api.example.com\n\n  # إخراج المخطط بتنسيق YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # توليد مخطط من stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "طباعة رقم الإصدار"
+  },
+  "version.long": {
+    "other": "طباعة معلومات إصدار apix."
+  },
+  "version.example": {
+    "other": "  # التحقق من الإصدار\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "مسح جميع ملفات ذاكرة التخزين المؤقت"
+  },
+  "clean.long": {
+    "other": "مسح جميع ملفات ذاكرة التخزين المؤقت لاستجابات HTTP المخزنة في الدليل المؤقت.\n\nذاكرة التخزين المؤقت تستخدم لتسريع طلبات HTTP المتكررة وتجنب طلب نفس URL عدة مرات أثناء التصغير.\nنفذ هذا الأمر إذا كنت تشك في انتهاء صلاحية بيانات ذاكرة التخزين المؤقت أو وجود مشاكل فيها."
+  },
+  "clean.example": {
+    "other": "  # مسح جميع ذاكرة التخزين المؤقت\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "إخراج بتنسيق JSON"
+  },
+  "flag.text": {
+    "other": "إخراج بتنسيق نص بروتوكول HTTP"
+  },
+  "flag.serial": {
+    "other": "استخدام الوضع التسلسلي (تصغير واحد تلو الآخر)"
+  },
+  "flag.resolve": {
+    "other": "تحليل DNS مخصص HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "التوازي (افتراضي 8، تعيين إلى 1 للتسلسلي)"
+  },
+  "flag.no-cache": {
+    "other": "تعطيل ذاكرة التخزين المؤقت"
+  },
+  "flag.match-mode": {
+    "other": "وضع المطابقة: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "شرط مطابقة التعبير (عندما يكون mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "استخدام أمر curl النظامي"
+  },
+  "flag.pretty": {
+    "other": "إخراج منسق"
+  },
+  "flag.out": {
+    "other": "تنسيق الإخراج: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "مسافات الإزاحة"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "المعلمات:"
+  },
+  "msg.examples": {
+    "other": "أمثلة:"
+  },
+  "msg.usage": {
+    "other": "الاستخدام:"
+  },
+  "msg.cache_cleaned": {
+    "other": "تم مسح ذاكرة التخزين المؤقت"
+  }
+}

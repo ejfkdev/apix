@@ -1,0 +1,143 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Linux
+          - os: linux
+            arch: amd64
+            goos: linux
+            goarch: amd64
+          - os: linux
+            arch: arm64
+            goos: linux
+            goarch: arm64
+          - os: linux
+            arch: "386"
+            goos: linux
+            goarch: "386"
+          # macOS
+          - os: darwin
+            arch: amd64
+            goos: darwin
+            goarch: amd64
+          - os: darwin
+            arch: arm64
+            goos: darwin
+            goarch: arm64
+          # Windows
+          - os: windows
+            arch: amd64
+            goos: windows
+            goarch: amd64
+            ext: .exe
+          - os: windows
+            arch: "386"
+            goos: windows
+            goarch: "386"
+            ext: .exe
+          # FreeBSD
+          - os: freebsd
+            arch: amd64
+            goos: freebsd
+            goarch: amd64
+          # OpenBSD
+          - os: openbsd
+            arch: amd64
+            goos: openbsd
+            goarch: amd64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '>=1.21'
+
+    - name: Build
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        output="apix-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}"
+        go build -ldflags="-s -w -X main.AppVersion=${{ github.ref_name }}" -o "$output" .
+        
+        # Create tarball
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          zip "${output%.exe}.zip" "$output" README.md LICENSE
+        else
+          tar -czf "${output}.tar.gz" "$output" README.md LICENSE
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: apix-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: |
+          apix-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        merge-multiple: true
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/apix-*
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        body: |
+          ## 安装
+
+          ### 下载对应平台的二进制文件
+
+          | 平台 | 架构 | 下载 |
+          |------|------|------|
+          | Linux | amd64 | [apix-linux-amd64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/apix-linux-amd64.tar.gz) |
+          | Linux | arm64 | [apix-linux-arm64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/apix-linux-arm64.tar.gz) |
+          | macOS | amd64 | [apix-darwin-amd64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/apix-darwin-amd64.tar.gz) |
+          | macOS | arm64 (M1/M2) | [apix-darwin-arm64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/apix-darwin-arm64.tar.gz) |
+          | Windows | amd64 | [apix-windows-amd64.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/apix-windows-amd64.zip) |
+
+          ### 快速安装
+
+          **Linux/macOS:**
+          ```bash
+          # 下载并安装（以 Linux amd64 为例）
+          curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/apix-linux-amd64.tar.gz | tar xz
+          sudo mv apix /usr/local/bin/
+          ```
+
+          **Windows:**
+          下载 `.zip` 文件，解压后将 `apix.exe` 添加到 PATH。
+
+          **Go Install:**
+          ```bash
+          go install github.com/${{ github.repository }}@${{ github.ref_name }}
+          ```
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

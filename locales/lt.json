@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API užklausų valymo ir atsakymų analizės įrankis"
+  },
+  "root.long": {
+    "other": "apix - API užklausų valymo ir atsakymų analizės įrankis\n\nPalaiko HTTP užklausų minimizavimą, atsakymų schemų išgavimą ir kondensuotų JSON duomenų generavimą.\nPagal numatytuosius nustatymus naudoja Go HTTP klientą, curl diegimas nereikalingas.\n\nPagrindinės komandos:\n  pure    Minimizuok HTTP užklausas pašalindami perteklines parametrus\n  mini    Gauk kondensuotus JSON atsakymo duomenis\n  schema  Gauk atsakymo JSON Schema struktūrą\n  clean   Išvalyk HTTP atsakymų podėlį\n\nIšvesties formatai: json, yaml, toml\n\nGreita pradžia:\n  # Minimizuok užklausą - automatiškai pašalink antraštes, parametrus, kūną ir slapukus, kurie neveikia atsakymo\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Nuoseklusis režimas - tikrink parametrus vieną po kito (priklausomiems parametrams)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Pasirinktinis atitikimo sąlyga - pagal būsenos kodą arba JSON laukus\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Gauk kondensuotą atsakymą (ilgos eilutės sutrumpintos, masyvai palieka tik pirmą/paskutinį)\n  apix mini curl https://api.example.com\n\n  # Gauk atsakymo schemą\n  apix schema curl https://api.example.com\n\n  # Apdorok JSON iš stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Išvalyk podėlį\n  apix clean\n\nNaudok \"apix [command] --help\" norėdamas gauti daugiau informacijos apie komandą."
+  },
+
+  "pure.short": {
+    "other": "Minimizuok HTTP užklausą ir išvesk minimalią užklausą"
+  },
+  "pure.long": {
+    "other": "Vykdyti curl užklausą ir išvalyti, išvesti minimizuotą užklausą.\n\nAutomatiškai tikrinti ir pašalinti antraštes, užklausas, kūną ir slapukus, kurie neveikia atsakymo struktūros.\nPalaiko kelis išvesties formatus: curl (numatytasis), json, http.\n\nIšraiškos atitikimas (-m expr):\n  Naudok --match-expr norėdamas nurodyti atitikimo sąlygas, palaiko šiuos kintamuosius:\n    status              HTTP būsenos kodas (int)\n    content_length      Atsakymo kūno ilgis (int)\n    line_count          Atsakymo kūno eilučių skaičius (int)\n    headers             Atsakymo antraščių žemėlapis (nesvarbus registrai prieiga)\n    body                Atsakymo kūno JSON duomenys (map/any)\n    $.field             Nuoroda į body.field\n\n  Operatoriai: == != < > <= >= && || ! contains()\n\n  Pavyzdžiai:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Numatytasis curl komandos išvestis\n  apix pure curl https://httpbin.org/get\n\n  # Nuoseklusis režimas (tikrinti vieną po kito, priklausomiems parametrams)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Lygiagretumo valdymas (sumažink lygiagretumą siekiant išvengti dažnio apribojimo)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON formato išvestis (panašus į HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTP protokolo formato išvestis\n  apix pure -t curl https://httpbin.org/get\n\n  # Būsenos kodo atitikimas (numatytasis yra struktūra)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Išraiškos atitikimas: būsena 200 ir JSON kodas lygus 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Išraiškos atitikimas: Content-Type yra json (antšečių prieiga nesvarbi registrai)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST formos duomenų minimizavimas\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Slapukų minimizavimas (tikrinti kiekvieną slapuką atskirai)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Pasirinktinis DNS sprendimas HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Naudoti sistemos curl ir išjungti podėlį\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Gauk kondensuotus JSON duomenis"
+  },
+  "mini.long": {
+    "other": "Gauk kondensuotus JSON duomenis.\n\nIlgos eilutės automatiškai sutrumpinamos (>30 simbolių), masyvai palieka tik pirmą ir paskutinį elementus.\n\nNaudojimas:\n  apix mini [args] curl [curl args...]  # Iš HTTP\n  cat data.json | apix mini [args]       # Iš stdin"
+  },
+  "mini.example": {
+    "other": "  # Gauk kondensuotą atsakymą iš HTTP\n  apix mini curl https://api.example.com\n\n  # YAML formato išvestis\n  apix mini -o yaml curl https://api.example.com\n\n  # Skaityk JSON iš stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Gauk atsakymo JSON Schema struktūrą"
+  },
+  "schema.long": {
+    "other": "Gauk atsakymo JSON duomenų struktūrą (JSON Schema).\n\nPagal numatytuosius nustatymus grąžina JSON Schema formatą, palaiko skaitymą iš HTTP arba stdin.\n\nNaudojimas:\n  apix schema [args] curl [curl args...]  # Iš HTTP\n  cat data.json | apix schema [args]       # Iš stdin"
+  },
+  "schema.example": {
+    "other": "  # Gauk atsakymo schemą iš HTTP\n  apix schema curl https://api.example.com\n\n  # Išvesk schemą YAML formatu\n  apix schema -o yaml curl https://api.example.com\n\n  # Generuok schemą iš stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Spausdinti versijos numerį"
+  },
+  "version.long": {
+    "other": "Spausdinti apix versijos informaciją."
+  },
+  "version.example": {
+    "other": "  # Patikrink versiją\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Išvalyti visus podėlio failus"
+  },
+  "clean.long": {
+    "other": "Išvalyti visus HTTP atsakymų podėlio failus, saugomus laikinojoje direktorijoje.\n\nPodėlis naudojamas pasikartojančioms HTTP užklausoms pagreitinti ir išvengti to paties URL prašymo kelis kartus minimizavimo metu.\nPaleisk šią komandą, jei įtari, kad podėlio duomenys paseno arba turi problemų."
+  },
+  "clean.example": {
+    "other": "  # Išvalyti visą podėlį\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Išvesti JSON formatu"
+  },
+  "flag.text": {
+    "other": "Išvesti HTTP protokolo teksto formatu"
+  },
+  "flag.serial": {
+    "other": "Naudoti nuoseklųjį režimą (minimizuoti vieną po kito)"
+  },
+  "flag.resolve": {
+    "other": "Pasirinktinis DNS sprendimas HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Lygiagretumas (numatytasis 8, nustatyk į 1 nuosekliam)"
+  },
+  "flag.no-cache": {
+    "other": "Išjungti podėlį"
+  },
+  "flag.match-mode": {
+    "other": "Atitikimo režimas: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Išraiškos atitikimo sąlyga (kai mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Naudoti sistemos curl komandą"
+  },
+  "flag.pretty": {
+    "other": "Daili išvestis"
+  },
+  "flag.out": {
+    "other": "Išvesties formatas: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Įtraukos tarpai"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametrai:"
+  },
+  "msg.examples": {
+    "other": "Pavyzdžiai:"
+  },
+  "msg.usage": {
+    "other": "Naudojimas:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Podėlis išvalytas"
+  }
+}

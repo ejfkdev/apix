@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API сұраныстарын тазалау және жауаптарды талдау құралы"
+  },
+  "root.long": {
+    "other": "apix - API сұраныстарын тазалау және жауаптарды талдау құралы\n\nHTTP сұраныстарын азайтуды, жауап схемаларын алуды және қысқартылған JSON деректерін генерациялауды қолдайды.\nӘдепкі бойынша Go HTTP клиентін қолданады, curl орнату қажет емес.\n\nНегізгі командалар:\n  pure    Артық параметрлерді жойып HTTP сұраныстарын азайту\n  mini    Жауаптың қысқартылған JSON деректерін алу\n  schema  Жауаптың JSON Schema құрылымын алу\n  clean   HTTP кэшін тазалау\n\nШығару форматтары: json, yaml, toml\n\nЖылдам бастау:\n  # Сұранысты азайту - жауапқа әсер етпейтін тақырыптарды, параметрлерді, денені және cookie файлдарын автоматты түрде жою\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Тізбекті режим - параметрлерді біртіндеп тексеру (тәуелді параметрлер үшін)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Таңдап алу шарты - күй коды немесе JSON өрістері негізінде\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Қысқартылған жауап алу (ұзын жолдар қысқартылған, массивтер тек бірінші/соңғы сақтайды)\n  apix mini curl https://api.example.com\n\n  # Жауап схемасын алу\n  apix schema curl https://api.example.com\n\n  # stdin арқылы JSON өңдеу\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Кэшті тазалау\n  apix clean\n\nКоманда туралы көбірек ақпарат алу үшін \"apix [command] --help\" пайдаланыңыз."
+  },
+
+  "pure.short": {
+    "other": "HTTP сұранысын азайту және минималды сұраныс шығару"
+  },
+  "pure.long": {
+    "other": "curl сұранысын орындау және тазалау, азайтылған сұраныс шығару.\n\nЖауап құрылымына әсер етпейтін тақырыптарды, сұраныстарды, денені және cookie файлдарын автоматты түрде тексеру және жою.\nБірнеше шығару форматтарын қолдайды: curl (әдепкі), json, http.\n\nӨрнекпен сәйкестендіру (-m expr):\n  Сәйкестендіру шарттарын көрсету үшін --match-expr пайдаланыңыз, келесі айнымалыларды қолдайды:\n    status              HTTP күй коды (int)\n    content_length      Жауап денесінің ұзындығы (int)\n    line_count          Жауап денесінің жолдар саны (int)\n    headers             Жауап тақырыптары картасы (регистрге сезбейтін қатынау)\n    body                Жауап денесінің JSON деректері (map/any)\n    $.field             body.field үшін қысқаша жол\n\n  Операторлар: == != < > <= >= && || ! contains()\n\n  Мысалдар:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Әдепкі бойынша curl командасын шығару\n  apix pure curl https://httpbin.org/get\n\n  # Тізбекті режим (біртіндеп тексеру, тәуелді параметрлер үшін)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Параллелизмді басқару (жылдамдық шектеуінен аулақ болу үшін параллелизмді азайту)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON форматында шығару (HAR-ге ұқсас)\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTP протоколы форматында шығару\n  apix pure -t curl https://httpbin.org/get\n\n  # Күй кодын сәйкестендіру (әдепкі бойынша құрылым)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Өрнекпен сәйкестендіру: күй 200 және JSON коды 0-ге тең\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Өрнекпен сәйкестендіру: Content-Type json қамтиды (тақырыптарға қатынау регистрге сезбейтін)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST нысан деректерін азайту\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Cookie файлдарын азайту (әр cookie файлын жеке тексеру)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Таңдап алынған DNS шешімі HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Жүйелік curl пайдалану және кэштті өшіру\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Қысқартылған JSON деректерін алу"
+  },
+  "mini.long": {
+    "other": "Қысқартылған JSON деректерін алу.\n\nҰзын жолдар автоматты түрде қысқартылды (>30 таңба), массивтер тек бірінші және соңғы элементтерді сақтайды.\n\nҚолдану:\n  apix mini [args] curl [curl args...]  # HTTP арқылы\n  cat data.json | apix mini [args]       # stdin арқылы"
+  },
+  "mini.example": {
+    "other": "  # HTTP жауабынан қысқартылған жауап алу\n  apix mini curl https://api.example.com\n\n  # YAML форматында шығару\n  apix mini -o yaml curl https://api.example.com\n\n  # stdin арқылы JSON оқу\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Жауаптың JSON Schema құрылымын алу"
+  },
+  "schema.long": {
+    "other": "Жауаптың JSON деректері құрылымын (JSON Schema) алу.\n\nӘдепкі бойынша JSON Schema форматын қайтарады, HTTP немесе stdin арқылы оқуды қолдайды.\n\nҚолдану:\n  apix schema [args] curl [curl args...]  # HTTP арқылы\n  cat data.json | apix schema [args]       # stdin арқылы"
+  },
+  "schema.example": {
+    "other": "  # HTTP жауабынан схема алу\n  apix schema curl https://api.example.com\n\n  # YAML форматындағы схема шығару\n  apix schema -o yaml curl https://api.example.com\n\n  # stdin арқылы схема генерациялау\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Нұсқа нөмірін басып шығару"
+  },
+  "version.long": {
+    "other": "apix нұсқа ақпаратын басып шығару."
+  },
+  "version.example": {
+    "other": "  # Нұсқаны тексеру\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Барлық кэш файлдарын тазалау"
+  },
+  "clean.long": {
+    "other": "Уақытша бумада сақталған барлық HTTP жауап кэш файлдарын тазалау.\n\nКэш қайталанатын HTTP сұраныстарын жеделдету және азайту кезінде бірдей URL-ге бірнеше рет сұраныс жіберуден аулақ болу үшін қолданылады.\nЕгер кэш деректерінің мерзімі өтіп кеткенін немесе мәселелері бар деп күдіктенсеңіз, осы команданы орындаңыз."
+  },
+  "clean.example": {
+    "other": "  # Барлық кэштті тазалау\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "JSON форматында шығару"
+  },
+  "flag.text": {
+    "other": "HTTP протоколы мәтін форматында шығару"
+  },
+  "flag.serial": {
+    "other": "Тізбекті режимді пайдалану (біртіндеп азайту)"
+  },
+  "flag.resolve": {
+    "other": "Таңдап алынған DNS шешімі HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Параллелизм (әдепкі бойынша 8, тізбекті үшін 1-ге орнату)"
+  },
+  "flag.no-cache": {
+    "other": "Кэштті өшіру"
+  },
+  "flag.match-mode": {
+    "other": "Сәйкестендіру режимі: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Өрнекпен сәйкестендіру шарты (mode=expr болғанда)"
+  },
+  "flag.use-curl": {
+    "other": "Жүйелік curl командасын пайдалану"
+  },
+  "flag.pretty": {
+    "other": "Әдемі шығару"
+  },
+  "flag.out": {
+    "other": "Шығару форматы: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Шегініс бос орындары"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Параметрлер:"
+  },
+  "msg.examples": {
+    "other": "Мысалдар:"
+  },
+  "msg.usage": {
+    "other": "Қолдану:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Кэш тазаланды"
+  }
+}

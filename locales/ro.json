@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Instrument de purificare a cererilor API și analiză a răspunsurilor"
+  },
+  "root.long": {
+    "other": "apix - Instrument de purificare a cererilor API și analiză a răspunsurilor\n\nSuportă minimizarea cererilor HTTP, extragerea schemelor de răspuns și generarea de date JSON condensate.\nUtilizează implicit clientul Go HTTP, nu este necesară instalarea curl.\n\nComenzi principale:\n  pure    Minimizați cererile HTTP prin eliminarea parametrilor redundanți\n  mini    Obțineți date JSON de răspuns condensate\n  schema  Obțineți structura JSON Schema a răspunsului\n  clean   Curățați memoria cache a răspunsului HTTP\n\nFormate de ieșire: json, yaml, toml\n\nPornire rapidă:\n  # Minimizați cererea - eliminați automat headerele, query, body, cookie care nu afectează răspunsul\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Mod serial - testați parametrii unul câte unul (pentru parametri cu dependențe)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Condiție de potrivire personalizată - bazată pe codul de stare sau câmpurile JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Obțineți răspuns condensat (șirurile lungi sunt trunchiate, array-urile păstrează doar primul/ultimul)\n  apix mini curl https://api.example.com\n\n  # Obțineți schema răspunsului\n  apix schema curl https://api.example.com\n\n  # Procesați JSON din stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Curățați memoria cache\n  apix clean\n\nFolosiți \"apix [command] --help\" pentru mai multe informații despre o comandă."
+  },
+
+  "pure.short": {
+    "other": "Minimizați cererea HTTP și afișați cererea minimă"
+  },
+  "pure.long": {
+    "other": "Executați cererea curl și purificați, afișați cererea minimizată.\n\nTestează automat și elimină headerele, query, body, cookie care nu afectează structura răspunsului.\nSuportă formate multiple de ieșire: curl (implicit), json, http.\n\nPotrivire expresie (-m expr):\n  Folosiți --match-expr pentru a specifica condițiile de potrivire, suportă următoarele variabile:\n    status              Cod de stare HTTP (int)\n    content_length      Lungimea corpului răspunsului (int)\n    line_count          Numărul de linii al corpului răspunsului (int)\n    headers             Harta headerelor răspunsului (acces fără distincție de litere mari/mici)\n    body                Datele JSON ale corpului răspunsului (map/any)\n    $.field             Prescurtare pentru body.field\n\n  Operatori: == != < > <= >= && || ! contains()\n\n  Exemple:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Ieșire implicită comandă curl\n  apix pure curl https://httpbin.org/get\n\n  # Mod serial (testare unul câte unul, pentru parametri cu dependențe)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Control paralelism (reduceți concurența pentru a evita rate limiting)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Ieșire format JSON (similar cu HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Ieșire format protocol HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # Potrivire cod de stare (implicit este structura)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Potrivire expresie: stare 200 și cod JSON egal cu 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Potrivire expresie: Content-Type conține json (accesul la headere este fără distincție de litere)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Minimizare POST form data\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Minimizare cookie (testați fiecare cookie individual)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Rezolvare DNS personalizată HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Folosiți curl de sistem și dezactivați memoria cache\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Obțineți date JSON condensate"
+  },
+  "mini.long": {
+    "other": "Obțineți date JSON condensate.\n\nȘirurile lungi sunt trunchiate automat (>30 caractere), array-urile păstrează doar primul și ultimul element.\n\nUtilizare:\n  apix mini [args] curl [curl args...]  # Din HTTP\n  cat data.json | apix mini [args]       # Din stdin"
+  },
+  "mini.example": {
+    "other": "  # Obțineți răspuns condensat din HTTP\n  apix mini curl https://api.example.com\n\n  # Ieșire format YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # Citire JSON din stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Obțineți structura JSON Schema a răspunsului"
+  },
+  "schema.long": {
+    "other": "Obțineți structura datelor JSON (JSON Schema) a răspunsului.\n\nReturnează formatul JSON Schema implicit, suportă citirea din HTTP sau stdin.\n\nUtilizare:\n  apix schema [args] curl [curl args...]  # Din HTTP\n  cat data.json | apix schema [args]       # Din stdin"
+  },
+  "schema.example": {
+    "other": "  # Obțineți schema răspunsului din HTTP\n  apix schema curl https://api.example.com\n\n  # Ieșire schema în format YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # Generați schema din stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Afișați numărul versiunii"
+  },
+  "version.long": {
+    "other": "Afișați informațiile despre versiunea apix."
+  },
+  "version.example": {
+    "other": "  # Verificați versiunea\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Curățați toate fișierele de memorie cache"
+  },
+  "clean.long": {
+    "other": "Curățați toate fișierele de memorie cache a răspunsului HTTP stocate în directorul temporar.\n\nMemoria cache este utilizată pentru a accelera cererile HTTP repetate și a evita solicitarea aceluiași URL de mai multe ori în timpul minimizării.\nRulați această comandă dacă suspectați că datele din cache sunt expirate sau au probleme."
+  },
+  "clean.example": {
+    "other": "  # Curățați toată memoria cache\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Ieșire format JSON"
+  },
+  "flag.text": {
+    "other": "Ieșire format text protocol HTTP"
+  },
+  "flag.serial": {
+    "other": "Folosiți modul serial (minimizați unul câte unul)"
+  },
+  "flag.resolve": {
+    "other": "Rezolvare DNS personalizată HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Paralelism (implicit 8, setați la 1 pentru serial)"
+  },
+  "flag.no-cache": {
+    "other": "Dezactivați memoria cache"
+  },
+  "flag.match-mode": {
+    "other": "Mod potrivire: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Condiție de potrivire expresie (când mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Folosiți comanda curl de sistem"
+  },
+  "flag.pretty": {
+    "other": "Ieșire formatată"
+  },
+  "flag.out": {
+    "other": "Format de ieșire: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Spații de indentare"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametri:"
+  },
+  "msg.examples": {
+    "other": "Exemple:"
+  },
+  "msg.usage": {
+    "other": "Utilizare:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Memorie cache curățată"
+  }
+}

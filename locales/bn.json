@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API অনুরোধ বিশুদ্ধিকরণ এবং প্রতিক্রিয়া বিশ্লেষণ টুল"
+  },
+  "root.long": {
+    "other": "apix - API অনুরোধ বিশুদ্ধিকরণ এবং প্রতিক্রিয়া বিশ্লেষণ টুল\n\nHTTP অনুরোধ কমানো, প্রতিক্রিয়া স্কিমা নিষ্কাশন এবং সংক্ষিপ্ত JSON ডেটা তৈরি করতে সহায়তা করে।\nডিফল্টরূপে Go HTTP ক্লায়েন্ট ব্যবহার করে, curl ইনস্টলেশন প্রয়োজন নয়।\n\nপ্রধান কমান্ড:\n  pure    অপ্রয়োজনীয় প্যারামিটার সরিয়ে HTTP অনুরোধ কমান\n  mini    প্রতিক্রিয়ার জন্য সংক্ষিপ্ত JSON ডেটা পান\n  schema  প্রতিক্রিয়ার JSON Schema কাঠামো পান\n  clean   HTTP প্রতিক্রিয়া ক্যাশে পরিষ্কার করুন\n\nআউটপুট ফরম্যাট: json, yaml, toml\n\nদ্রুত শুরু:\n  # অনুরোধ কমান - প্রতিক্রিয়ায় প্রভাব না ফেলা হেডার, প্যারামিটার, বডি এবং কুকি স্বয়ংক্রিয়ভাবে সরান\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # সিরিয়াল মোড - প্যারামিটার একে একে পরীক্ষা করুন (নির্ভরশীল প্যারামিটারের জন্য)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # কাস্টম ম্যাচ শর্ত - স্ট্যাটাস কোড বা JSON ফিল্ডের উপর ভিত্তি করে\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # সংক্ষিপ্ত প্রতিক্রিয়া পান (দীর্ঘ স্ট্রিং ছাঁটা, অ্যারে শুধু প্রথম/শেষ রাখে)\n  apix mini curl https://api.example.com\n\n  # প্রতিক্রিয়া স্কিমা পান\n  apix schema curl https://api.example.com\n\n  # stdin থেকে JSON প্রক্রিয়া করুন\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # ক্যাশে পরিষ্কার করুন\n  apix clean\n\nএকটি কমান্ড সম্পর্কে আরও তথ্যের জন্য \"apix [command] --help\" ব্যবহার করুন।"
+  },
+
+  "pure.short": {
+    "other": "HTTP অনুরোধ কমান এবং ন্যূনতম অনুরোধ আউটপুট করুন"
+  },
+  "pure.long": {
+    "other": "curl অনুরোধ কার্যকর করুন এবং বিশুদ্ধ করুন, কমানো অনুরোধ আউটপুট করুন।\n\nপ্রতিক্রিয়া কাঠামোতে প্রভাব না ফেলা হেডার, কোয়েরি, বডি এবং কুকি স্বয়ংক্রিয়ভাবে পরীক্ষা এবং সরান।\nএকাধিক আউটপুট ফরম্যাট সমর্থন করে: curl (ডিফল্ট), json, http।\n\nএক্সপ্রেশন ম্যাচিং (-m expr):\n  ম্যাচ শর্ত নির্দিষ্ট করতে --match-expr ব্যবহার করুন, নিম্নলিখিত ভেরিয়েবল সমর্থন করে:\n    status              HTTP স্ট্যাটাস কোড (int)\n    content_length      প্রতিক্রিয়া বডির দৈর্ঘ্য (int)\n    line_count          প্রতিক্রিয়া বডির লাইন সংখ্যা (int)\n    headers             প্রতিক্রিয়া হেডার ম্যাপ (কেস-অন সংবেদনশীল অ্যাক্সেস)\n    body                প্রতিক্রিয়া বডি JSON ডেটা (map/any)\n    $.field             body.field এর জন্য শর্টকাট\n\n  অপারেটর: == != < > <= >= && || ! contains()\n\n  উদাহরণ:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # ডিফল্ট curl কমান্ড আউটপুট\n  apix pure curl https://httpbin.org/get\n\n  # সিরিয়াল মোড (একে একে পরীক্ষা, নির্ভরশীল প্যারামিটারের জন্য)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # সমান্তরালতা নিয়ন্ত্রণ (রেট সীমা এড়াতে সমান্তরালতা কমান)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON ফরম্যাট আউটপুট (HAR এর মতো)\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTP প্রোটোকল ফরম্যাট আউটপুট\n  apix pure -t curl https://httpbin.org/get\n\n  # স্ট্যাটাস কোড ম্যাচ (ডিফল্ট হলো কাঠামো)\n  apix pure -m status curl https://httpbin.org/get\n\n  # এক্সপ্রেশন ম্যাচ: স্ট্যাটাস 200 এবং JSON কোড 0 এর সমান\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # এক্সপ্রেশন ম্যাচ: Content-Type json ধারণ করে (হেডার অ্যাক্সেস কেস-অন সংবেদনশীল)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST ফর্ম ডেটা কমান\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # কুকি কমান (প্রতিটি কুকি আলাদাভাবে পরীক্ষা)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # কাস্টম DNS রেজোলিউশন HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # সিস্টেম curl ব্যবহার করুন এবং ক্যাশে নিষ্ক্রিয় করুন\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "সংক্ষিপ্ত JSON ডেটা পান"
+  },
+  "mini.long": {
+    "other": "সংক্ষিপ্ত JSON ডেটা পান।\n\nদীর্ঘ স্ট্রিং স্বয়ংক্রিয়ভাবে ছাঁটা হয় (>30 অক্ষর), অ্যারে শুধু প্রথম এবং শেষ উপাদান রাখে।\n\nব্যবহার:\n  apix mini [args] curl [curl args...]  # HTTP থেকে\n  cat data.json | apix mini [args]       # stdin থেকে"
+  },
+  "mini.example": {
+    "other": "  # HTTP থেকে সংক্ষিপ্ত প্রতিক্রিয়া পান\n  apix mini curl https://api.example.com\n\n  # YAML ফরম্যাট আউটপুট\n  apix mini -o yaml curl https://api.example.com\n\n  # stdin থেকে JSON পড়ুন\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "প্রতিক্রিয়ার JSON Schema কাঠামো পান"
+  },
+  "schema.long": {
+    "other": "প্রতিক্রিয়ার JSON ডেটা কাঠামো (JSON Schema) পান।\n\nডিফল্টরূপে JSON Schema ফরম্যাট রিটার্ন করে, HTTP বা stdin থেকে পড়া সমর্থন করে।\n\nব্যবহার:\n  apix schema [args] curl [curl args...]  # HTTP থেকে\n  cat data.json | apix schema [args]       # stdin থেকে"
+  },
+  "schema.example": {
+    "other": "  # HTTP থেকে প্রতিক্রিয়া স্কিমা পান\n  apix schema curl https://api.example.com\n\n  # YAML ফরম্যাটে স্কিমা আউটপুট\n  apix schema -o yaml curl https://api.example.com\n\n  # stdin থেকে স্কিমা তৈরি করুন\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "ভার্সন নম্বর প্রিন্ট করুন"
+  },
+  "version.long": {
+    "other": "apix ভার্সন তথ্য প্রিন্ট করুন।"
+  },
+  "version.example": {
+    "other": "  # ভার্সন চেক করুন\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "সমস্ত ক্যাশে ফাইল পরিষ্কার করুন"
+  },
+  "clean.long": {
+    "other": "অস্থায়ী ডিরেক্টরিতে সংরক্ষিত সমস্ত HTTP প্রতিক্রিয়া ক্যাশে ফাইল পরিষ্কার করুন।\n\nক্যাশে পুনরাবৃত্ত HTTP অনুরোধ ত্বরান্বিত করতে এবং কমানোর সময় একই URL একাধিকবার অনুরোধ করা এড়াতে ব্যবহৃত হয়।\nআপনি যদি সন্দেহ করেন যে ক্যাশে ডেটা মেয়াদোত্তীর্ণ বা সমস্যা আছে, তাহলে এই কমান্ড চালান।"
+  },
+  "clean.example": {
+    "other": "  # সমস্ত ক্যাশে পরিষ্কার করুন\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "JSON ফরম্যাট আউটপুট"
+  },
+  "flag.text": {
+    "other": "HTTP প্রোটোকল টেক্সট ফরম্যাট আউটপুট"
+  },
+  "flag.serial": {
+    "other": "সিরিয়াল মোড ব্যবহার করুন (একে একে কমান)"
+  },
+  "flag.resolve": {
+    "other": "কাস্টম DNS রেজোলিউশন HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "সমান্তরালতা (ডিফল্ট 8, সিরিয়ালের জন্য 1 এ সেট করুন)"
+  },
+  "flag.no-cache": {
+    "other": "ক্যাশে নিষ্ক্রিয় করুন"
+  },
+  "flag.match-mode": {
+    "other": "ম্যাচ মোড: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "এক্সপ্রেশন ম্যাচ শর্ত (যখন mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "সিস্টেম curl কমান্ড ব্যবহার করুন"
+  },
+  "flag.pretty": {
+    "other": "সুন্দর আউটপুট"
+  },
+  "flag.out": {
+    "other": "আউটপুট ফরম্যাট: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "ইন্ডেন্ট স্পেস"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "প্যারামিটার:"
+  },
+  "msg.examples": {
+    "other": "উদাহরণ:"
+  },
+  "msg.usage": {
+    "other": "ব্যবহার:"
+  },
+  "msg.cache_cleaned": {
+    "other": "ক্যাশে পরিষ্কার করা হয়েছে"
+  }
+}

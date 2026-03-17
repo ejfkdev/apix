@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Công cụ làm sạch yêu cầu API và phân tích phản hồi"
+  },
+  "root.long": {
+    "other": "apix - Công cụ làm sạch yêu cầu API và phân tích phản hồi\n\nHỗ trợ thu nhỏ yêu cầu HTTP, trích xuất lược đồ phản hồi và tạo dữ liệu JSON cô đọng.\nSử dụng HTTP client Go theo mặc định, không cần cài đặt curl.\n\nLệnh chính:\n  pure    Thu nhỏ yêu cầu HTTP bằng cách loại bỏ tham số dư thừa\n  mini    Lấy dữ liệu phản hồi JSON cô đọng\n  schema  Lấy cấu trúc JSON Schema của phản hồi\n  clean   Xóa bộ nhớ đệm phản hồi HTTP\n\nĐịnh dạng đầu ra: json, yaml, toml\n\nKhởi động nhanh:\n  # Thu nhỏ yêu cầu - tự động xóa header, query, body, cookie không ảnh hưởng đến phản hồi\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Chế độ nối tiếp - kiểm tra tham số từng cái một (cho tham số có phụ thuộc)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Điều kiện khớp tùy chỉnh - dựa trên mã trạng thái hoặc trường JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Lấy phản hồi cô đọng (chuỗi dài bị cắt ngắn, mảng chỉ giữ đầu/cuối)\n  apix mini curl https://api.example.com\n\n  # Lấy lược đồ phản hồi\n  apix schema curl https://api.example.com\n\n  # Xử lý JSON từ stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Xóa bộ nhớ đệm\n  apix clean\n\nSử dụng \"apix [command] --help\" để biết thêm thông tin về lệnh."
+  },
+
+  "pure.short": {
+    "other": "Thu nhỏ yêu cầu HTTP và xuất yêu cầu tối thiểu"
+  },
+  "pure.long": {
+    "other": "Thực thi yêu cầu curl và làm sạch, xuất yêu cầu đã thu nhỏ.\n\nTự động kiểm tra và xóa header, tham số truy vấn, body, cookie không ảnh hưởng đến cấu trúc phản hồi.\nHỗ trợ nhiều định dạng đầu ra: curl (mặc định), json, http.\n\nKhớp biểu thức (-m expr):\n  Sử dụng --match-expr để chỉ định điều kiện khớp, hỗ trợ các biến sau:\n    status              Mã trạng thái HTTP (int)\n    content_length      Độ dài body phản hồi (int)\n    line_count          Số dòng body phản hồi (int)\n    headers             Map header phản hồi (truy cập không phân biệt chữ hoa/thường)\n    body                Dữ liệu JSON body phản hồi (map/any)\n    $.field             Phím tắt cho body.field\n\n  Toán tử: == != < > <= >= && || ! contains()\n\n  Ví dụ:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Đầu ra lệnh curl mặc định\n  apix pure curl https://httpbin.org/get\n\n  # Chế độ nối tiếp (kiểm tra từng cái một, cho tham số có phụ thuộc)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Kiểm soát song song (giảm đồng thời để tránh giới hạn tốc độ)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Đầu ra định dạng JSON (tương tự HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Đầu ra định dạng giao thức HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # Khớp mã trạng thái (mặc định là cấu trúc)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Khớp biểu thức: trạng thái 200 và mã JSON bằng 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Khớp biểu thức: Content-Type chứa json (truy cập header không phân biệt chữ hoa/thường)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Thu nhỏ dữ liệu form POST\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Thu nhỏ cookie (kiểm tra từng cookie riêng lẻ)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Phân giải DNS tùy chỉnh HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Sử dụng curl hệ thống và tắt bộ nhớ đệm\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Lấy dữ liệu JSON cô đọng"
+  },
+  "mini.long": {
+    "other": "Lấy dữ liệu JSON cô đọng.\n\nChuỗi dài tự động bị cắt ngắn (>30 ký tự), mảng chỉ giữ phần tử đầu tiên và cuối cùng.\n\nSử dụng:\n  apix mini [args] curl [curl args...]  # Từ HTTP\n  cat data.json | apix mini [args]       # Từ stdin"
+  },
+  "mini.example": {
+    "other": "  # Lấy phản hồi cô đọng từ HTTP\n  apix mini curl https://api.example.com\n\n  # Đầu ra định dạng YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # Đọc JSON từ stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Lấy cấu trúc JSON Schema của phản hồi"
+  },
+  "schema.long": {
+    "other": "Lấy cấu trúc dữ liệu JSON (JSON Schema) của phản hồi.\n\nTrả về định dạng JSON Schema theo mặc định, hỗ trợ đọc từ HTTP hoặc stdin.\n\nSử dụng:\n  apix schema [args] curl [curl args...]  # Từ HTTP\n  cat data.json | apix schema [args]       # Từ stdin"
+  },
+  "schema.example": {
+    "other": "  # Lấy lược đồ phản hồi từ HTTP\n  apix schema curl https://api.example.com\n\n  # Đầu ra lược đồ định dạng YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # Tạo lược đồ từ stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "In số phiên bản"
+  },
+  "version.long": {
+    "other": "In thông tin phiên bản apix."
+  },
+  "version.example": {
+    "other": "  # Kiểm tra phiên bản\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Xóa tất cả tệp bộ nhớ đệm"
+  },
+  "clean.long": {
+    "other": "Xóa tất cả tệp bộ nhớ đệm phản hồi HTTP được lưu trong thư mục tạm.\n\nBộ nhớ đệm được sử dụng để tăng tốc các yêu cầu HTTP lặp lại và tránh yêu cầu cùng một URL nhiều lần trong quá trình thu nhỏ.\nChạy lệnh này nếu bạn nghi ngờ dữ liệu bộ nhớ đệm đã hết hạn hoặc có vấn đề."
+  },
+  "clean.example": {
+    "other": "  # Xóa toàn bộ bộ nhớ đệm\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Đầu ra định dạng JSON"
+  },
+  "flag.text": {
+    "other": "Đầu ra định dạng văn bản giao thức HTTP"
+  },
+  "flag.serial": {
+    "other": "Sử dụng chế độ nối tiếp (thu nhỏ từng cái một)"
+  },
+  "flag.resolve": {
+    "other": "Phân giải DNS tùy chỉnh HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Song song (mặc định 8, đặt 1 cho nối tiếp)"
+  },
+  "flag.no-cache": {
+    "other": "Tắt bộ nhớ đệm"
+  },
+  "flag.match-mode": {
+    "other": "Chế độ khớp: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Điều kiện khớp biểu thức (khi mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Sử dụng lệnh curl hệ thống"
+  },
+  "flag.pretty": {
+    "other": "Đầu ra đẹp"
+  },
+  "flag.out": {
+    "other": "Định dạng đầu ra: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Khoảng trắng thụt lề"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Tham số:"
+  },
+  "msg.examples": {
+    "other": "Ví dụ:"
+  },
+  "msg.usage": {
+    "other": "Sử dụng:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Đã xóa bộ nhớ đệm"
+  }
+}

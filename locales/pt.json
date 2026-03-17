@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Ferramenta de purificação de requisições API e análise de respostas"
+  },
+  "root.long": {
+    "other": "apix - Ferramenta de purificação de requisições API e análise de respostas\n\nSuporta minimização de requisições HTTP, extração de esquemas de resposta e geração de dados JSON condensados.\nUsa cliente HTTP Go por padrão, não requer instalação do curl.\n\nComandos principais:\n  pure    Minimize requisições HTTP removendo parâmetros redundantes\n  mini    Obtenha dados de resposta JSON condensados\n  schema  Obtenha estrutura JSON Schema da resposta\n  clean   Limpe o cache de respostas HTTP\n\nFormatos de saída: json, yaml, toml\n\nInício rápido:\n  # Minimize requisição - remova automaticamente headers, query, body, cookies que não afetam a resposta\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Modo serial - teste parâmetros um por um (para parâmetros com dependências)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Condição de correspondência personalizada - baseada em código de status ou campos JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Obtenha resposta condensada (strings longas truncadas, arrays mantêm apenas primeiro/último)\n  apix mini curl https://api.example.com\n\n  # Obtenha esquema da resposta\n  apix schema curl https://api.example.com\n\n  # Processe JSON da entrada padrão\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Limpe o cache\n  apix clean\n\nUse \"apix [command] --help\" para mais informações sobre um comando."
+  },
+
+  "pure.short": {
+    "other": "Minimize requisição HTTP e saída de requisição mínima"
+  },
+  "pure.long": {
+    "other": "Execute requisição curl e purifique, saída de requisição minimizada.\n\nTesta e remove automaticamente headers, parâmetros de query, body, cookies que não afetam a estrutura da resposta.\nSuporta múltiplos formatos de saída: curl (padrão), json, http.\n\nCorrespondência de expressão (-m expr):\n  Use --match-expr para especificar condições de correspondência, suporta as seguintes variáveis:\n    status              Código de status HTTP (int)\n    content_length      Comprimento do body da resposta (int)\n    line_count          Contagem de linhas do body da resposta (int)\n    headers             Mapa de headers da resposta (acesso sem diferenciação de maiúsculas/minúsculas)\n    body                Dados JSON do body da resposta (map/any)\n    $.field             Atalho para body.field\n\n  Operadores: == != < > <= >= && || ! contains()\n\n  Exemplos:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Saída padrão do comando curl\n  apix pure curl https://httpbin.org/get\n\n  # Modo serial (teste um por um, para parâmetros com dependências)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Controle de paralelismo (reduza concorrência para evitar limitação de taxa)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Saída em formato JSON (similar a HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Saída em formato de protocolo HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # Corresponder código de status (padrão é estrutura)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Correspondência de expressão: status 200 e código JSON igual a 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Correspondência de expressão: Content-Type contém json (acesso a headers sem diferenciação de maiúsculas/minúsculas)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Minimização de dados de formulário POST\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Minimização de cookies (teste cada cookie individualmente)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Resolução DNS personalizada HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Use curl do sistema e desative cache\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Obtenha dados JSON condensados"
+  },
+  "mini.long": {
+    "other": "Obtenha dados JSON condensados.\n\nStrings longas são automaticamente truncadas (>30 caracteres), arrays mantêm apenas o primeiro e último elemento.\n\nUso:\n  apix mini [args] curl [curl args...]  # De HTTP\n  cat data.json | apix mini [args]       # Da entrada padrão"
+  },
+  "mini.example": {
+    "other": "  # Obtenha resposta condensada de HTTP\n  apix mini curl https://api.example.com\n\n  # Saída em formato YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # Leia JSON da entrada padrão\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Obtenha estrutura JSON Schema da resposta"
+  },
+  "schema.long": {
+    "other": "Obtenha estrutura de dados JSON (JSON Schema) da resposta.\n\nRetorna formato JSON Schema por padrão, suporta leitura de HTTP ou entrada padrão.\n\nUso:\n  apix schema [args] curl [curl args...]  # De HTTP\n  cat data.json | apix schema [args]       # Da entrada padrão"
+  },
+  "schema.example": {
+    "other": "  # Obtenha esquema de resposta de HTTP\n  apix schema curl https://api.example.com\n\n  # Saída de esquema em formato YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # Gere esquema da entrada padrão\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Imprima número da versão"
+  },
+  "version.long": {
+    "other": "Imprima informações da versão do apix."
+  },
+  "version.example": {
+    "other": "  # Verifique versão\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Limpe todos os arquivos de cache"
+  },
+  "clean.long": {
+    "other": "Limpe todos os arquivos de cache de respostas HTTP armazenados no diretório temporário.\n\nO cache é usado para acelerar requisições HTTP repetidas e evitar solicitar a mesma URL várias vezes durante a minimização.\nExecute este comando se suspeitar que os dados do cache estão expirados ou apresentam problemas."
+  },
+  "clean.example": {
+    "other": "  # Limpe todo o cache\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Saída em formato JSON"
+  },
+  "flag.text": {
+    "other": "Saída em formato de texto de protocolo HTTP"
+  },
+  "flag.serial": {
+    "other": "Use modo serial (minimize um por um)"
+  },
+  "flag.resolve": {
+    "other": "Resolução DNS personalizada HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Paralelismo (padrão 8, defina como 1 para serial)"
+  },
+  "flag.no-cache": {
+    "other": "Desative cache"
+  },
+  "flag.match-mode": {
+    "other": "Modo de correspondência: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Condição de correspondência de expressão (quando mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Use comando curl do sistema"
+  },
+  "flag.pretty": {
+    "other": "Saída formatada"
+  },
+  "flag.out": {
+    "other": "Formato de saída: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Espaços de indentação"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parâmetros:"
+  },
+  "msg.examples": {
+    "other": "Exemplos:"
+  },
+  "msg.usage": {
+    "other": "Uso:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Cache limpo"
+  }
+}

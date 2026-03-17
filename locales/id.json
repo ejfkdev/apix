@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Alat pemurnian permintaan API dan analisis respons"
+  },
+  "root.long": {
+    "other": "apix - Alat pemurnian permintaan API dan analisis respons\n\nMendukung meminimalkan permintaan HTTP, mengekstrak skema respons, dan menghasilkan data JSON terkondensasi.\nMenggunakan HTTP client Go secara default, tidak memerlukan instalasi curl.\n\nPerintah utama:\n  pure    Minimalkan permintaan HTTP dengan menghapus parameter yang berlebihan\n  mini    Dapatkan data respons JSON terkondensasi\n  schema  Dapatkan struktur JSON Schema dari respons\n  clean   Bersihkan cache respons HTTP\n\nFormat output: json, yaml, toml\n\nMulai cepat:\n  # Minimalkan permintaan - hapus otomatis header, query, body, cookie yang tidak mempengaruhi respons\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Mode serial - uji parameter satu per satu (untuk parameter dengan dependensi)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Kondisi pencocokan kustom - berdasarkan kode status atau field JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Dapatkan respons terkondensasi (string panjang dipotong, array hanya menyimpan pertama/terakhir)\n  apix mini curl https://api.example.com\n\n  # Dapatkan skema respons\n  apix schema curl https://api.example.com\n\n  # Proses JSON dari stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Bersihkan cache\n  apix clean\n\nGunakan \"apix [command] --help\" untuk informasi lebih lanjut tentang perintah."
+  },
+
+  "pure.short": {
+    "other": "Minimalkan permintaan HTTP dan output permintaan minimal"
+  },
+  "pure.long": {
+    "other": "Eksekusi permintaan curl dan murnikan, output permintaan yang diminimalkan.\n\nSecara otomatis menguji dan menghapus header, query parameter, body, cookie yang tidak mempengaruhi struktur respons.\nMendukung banyak format output: curl (default), json, http.\n\nPencocokan ekspresi (-m expr):\n  Gunakan --match-expr untuk menentukan kondisi pencocokan, mendukung variabel berikut:\n    status              Kode status HTTP (int)\n    content_length      Panjang body respons (int)\n    line_count          Jumlah baris body respons (int)\n    headers             Map header respons (akses case-insensitive)\n    body                Data JSON body respons (map/any)\n    $.field             Shortcut untuk body.field\n\n  Operator: == != < > <= >= && || ! contains()\n\n  Contoh:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Output perintah curl default\n  apix pure curl https://httpbin.org/get\n\n  # Mode serial (uji satu per satu, untuk parameter dengan dependensi)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Kontrol paralelisme (kurangi konkurensi untuk menghindari pembatasan rate)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Output format JSON (mirip HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Output format protokol HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # Cocokkan kode status (default adalah struktur)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Pencocokan ekspresi: status 200 dan kode JSON sama dengan 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Pencocokan ekspresi: Content-Type mengandung json (akses header case-insensitive)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Minimalkan data form POST\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Minimalkan cookie (uji setiap cookie secara individual)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Resolusi DNS kustom HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Gunakan curl sistem dan nonaktifkan cache\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Dapatkan data JSON terkondensasi"
+  },
+  "mini.long": {
+    "other": "Dapatkan data JSON terkondensasi.\n\nString panjang secara otomatis dipotong (>30 karakter), array hanya menyimpan elemen pertama dan terakhir.\n\nPenggunaan:\n  apix mini [args] curl [curl args...]  # Dari HTTP\n  cat data.json | apix mini [args]       # Dari stdin"
+  },
+  "mini.example": {
+    "other": "  # Dapatkan respons terkondensasi dari HTTP\n  apix mini curl https://api.example.com\n\n  # Output format YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # Baca JSON dari stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Dapatkan struktur JSON Schema dari respons"
+  },
+  "schema.long": {
+    "other": "Dapatkan struktur data JSON (JSON Schema) dari respons.\n\nMengembalikan format JSON Schema secara default, mendukung pembacaan dari HTTP atau stdin.\n\nPenggunaan:\n  apix schema [args] curl [curl args...]  # Dari HTTP\n  cat data.json | apix schema [args]       # Dari stdin"
+  },
+  "schema.example": {
+    "other": "  # Dapatkan skema respons dari HTTP\n  apix schema curl https://api.example.com\n\n  # Output skema format YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # Hasilkan skema dari stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Cetak nomor versi"
+  },
+  "version.long": {
+    "other": "Cetak informasi versi apix."
+  },
+  "version.example": {
+    "other": "  # Periksa versi\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Bersihkan semua file cache"
+  },
+  "clean.long": {
+    "other": "Bersihkan semua file cache respons HTTP yang disimpan di direktori sementara.\n\nCache digunakan untuk mempercepat permintaan HTTP yang berulang dan menghindari meminta URL yang sama berkali-kali selama minimasi.\nJalankan perintah ini jika Anda mencurigai data cache sudah kedaluwarsa atau bermasalah."
+  },
+  "clean.example": {
+    "other": "  # Bersihkan semua cache\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Output format JSON"
+  },
+  "flag.text": {
+    "other": "Output format teks protokol HTTP"
+  },
+  "flag.serial": {
+    "other": "Gunakan mode serial (minimalkan satu per satu)"
+  },
+  "flag.resolve": {
+    "other": "Resolusi DNS kustom HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Paralelisme (default 8, atur ke 1 untuk serial)"
+  },
+  "flag.no-cache": {
+    "other": "Nonaktifkan cache"
+  },
+  "flag.match-mode": {
+    "other": "Mode pencocokan: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Kondisi pencocokan ekspresi (saat mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Gunakan perintah curl sistem"
+  },
+  "flag.pretty": {
+    "other": "Output yang rapi"
+  },
+  "flag.out": {
+    "other": "Format output: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Spasi indentasi"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parameter:"
+  },
+  "msg.examples": {
+    "other": "Contoh:"
+  },
+  "msg.usage": {
+    "other": "Penggunaan:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Cache dibersihkan"
+  }
+}

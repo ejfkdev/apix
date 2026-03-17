@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API 请求净化与响应分析工具"
+  },
+  "root.long": {
+    "other": "apix - API 请求净化与响应分析工具\n\n支持精简 HTTP 请求、获取响应 Schema、生成精简 JSON 数据。\n默认使用 Go HTTP 客户端，无需安装 curl。\n\n主要功能:\n  pure    精简 HTTP 请求，移除冗余参数\n  mini    获取精简后的 JSON 响应数据\n  schema  获取响应 JSON Schema 结构\n  clean   清理 HTTP 响应缓存\n\n输出格式支持: json, yaml, toml\n\n快速开始:\n  # 精简请求 - 自动移除不影响响应的 headers、query、body、cookie\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # 串行模式 - 逐个测试参数（适合参数之间有依赖关系）\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # 自定义匹配条件 - 基于状态码或 JSON 字段\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # 获取精简响应（长字符串截断，数组只保留首尾）\n  apix mini curl https://api.example.com\n\n  # 获取响应 Schema\n  apix schema curl https://api.example.com\n\n  # 从 stdin 处理 JSON\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # 清理缓存\n  apix clean\n\n使用 \"apix [command] --help\" 查看子命令详细帮助。"
+  },
+
+  "pure.short": {
+    "other": "精简 HTTP 请求，输出最小化请求"
+  },
+  "pure.long": {
+    "other": "执行 curl 请求并净化，输出最小化后的请求。\n\n自动测试并移除不影响响应结构的 headers、query、body、cookie。\n支持多种输出格式：curl（默认）、json、http。\n\n表达式匹配 (-m expr):\n  使用 --match-expr 指定匹配条件，支持以下变量：\n    status              HTTP 状态码 (int)\n    content_length      响应体长度 (int)\n    line_count          响应体行数 (int)\n    headers             响应头 map（访问时不区分大小写）\n    body                响应体 JSON 数据 (map/any)\n    $.field             body.field 的简写\n\n  运算符：== != < > <= >= && || ! contains()\n\n  示例：\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # 默认输出 curl 命令\n  apix pure curl https://httpbin.org/get\n\n  # 串行模式（逐个测试，适合参数有依赖的情况）\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # 控制并行度（降低并发避免限流）\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # 输出 JSON 格式（类似 HAR）\n  apix pure -j curl https://httpbin.org/get\n\n  # 输出 HTTP 协议格式\n  apix pure -t curl https://httpbin.org/get\n\n  # 匹配状态码（默认是 structure）\n  apix pure -m status curl https://httpbin.org/get\n\n  # 表达式匹配：状态码 200 且 JSON 中的 code 为 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # 表达式匹配：Content-Type 包含 json（headers 访问不区分大小写）\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST 表单数据精简\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Cookie 精简（单独测试每个 cookie）\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # 指定域名解析到特定 IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # 使用系统 curl 并禁用缓存\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "获取精简后的 JSON 数据"
+  },
+  "mini.long": {
+    "other": "获取精简后的 JSON 数据。\n\n长字符串自动截断（>30 字符），数组只保留首尾元素。\n\n用法:\n  apix mini [参数] curl [curl参数...]  # 从 HTTP 获取\n  cat data.json | apix mini [参数]      # 从 stdin 读取"
+  },
+  "mini.example": {
+    "other": "  # 从 HTTP 获取精简响应\n  apix mini curl https://api.example.com\n\n  # 输出 YAML 格式\n  apix mini -o yaml curl https://api.example.com\n\n  # 从 stdin 读取 JSON\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "获取响应 JSON 的数据结构"
+  },
+  "schema.long": {
+    "other": "获取响应 JSON 的数据结构（JSON Schema）。\n\n默认返回 JSON Schema 格式，支持从 HTTP 或 stdin 读取数据。\n\n用法:\n  apix schema [参数] curl [curl参数...]  # 从 HTTP 获取\n  cat data.json | apix schema [参数]      # 从 stdin 读取"
+  },
+  "schema.example": {
+    "other": "  # 从 HTTP 获取响应 Schema\n  apix schema curl https://api.example.com\n\n  # 输出 YAML 格式的 Schema\n  apix schema -o yaml curl https://api.example.com\n\n  # 从 stdin 生成 Schema\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "打印版本号"
+  },
+  "version.long": {
+    "other": "打印 apix 的版本信息。"
+  },
+  "version.example": {
+    "other": "  # 查看版本\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "清理所有缓存文件"
+  },
+  "clean.long": {
+    "other": "清理存储在临时目录中的所有 HTTP 响应缓存文件。\n\n缓存用于加速重复的 HTTP 请求，避免在精简过程中多次请求相同的 URL。\n如果怀疑缓存数据过期或出现问题，可以运行此命令清理。"
+  },
+  "clean.example": {
+    "other": "  # 清理所有缓存\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "输出 JSON 格式"
+  },
+  "flag.text": {
+    "other": "输出 HTTP 协议文本格式"
+  },
+  "flag.serial": {
+    "other": "使用串行模式（逐个精简）"
+  },
+  "flag.resolve": {
+    "other": "自定义域名解析 HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "并行度（默认 8，设为 1 时强制串行）"
+  },
+  "flag.no-cache": {
+    "other": "禁用缓存"
+  },
+  "flag.match-mode": {
+    "other": "匹配模式: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "表达式匹配条件 (mode=expr 时使用)"
+  },
+  "flag.use-curl": {
+    "other": "使用系统 curl 命令"
+  },
+  "flag.pretty": {
+    "other": "美化输出"
+  },
+  "flag.out": {
+    "other": "输出格式: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "缩进空格数"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [参数] curl [curl参数...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [参数] curl [curl参数...]\n  cat data.json | apix mini [参数]"
+  },
+  "usage.schema": {
+    "other": "apix schema [参数] curl [curl参数...]\n  cat data.json | apix schema [参数]"
+  },
+
+  "msg.params": {
+    "other": "参数:"
+  },
+  "msg.examples": {
+    "other": "示例:"
+  },
+  "msg.usage": {
+    "other": "用法:"
+  },
+  "msg.cache_cleaned": {
+    "other": "缓存已清理"
+  }
+}

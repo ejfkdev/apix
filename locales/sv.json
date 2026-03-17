@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API-begäransrenings- och svarsanalysverktyg"
+  },
+  "root.long": {
+    "other": "apix - API-begäransrenings- och svarsanalysverktyg\n\nStöder minimering av HTTP-begäranden, extrahering av svarsscheman och generering av kondenserad JSON-data.\nAnvänder Go HTTP-klient som standard, ingen curl-installation krävs.\n\nHuvudkommandon:\n  pure    Minimera HTTP-begäranden genom att ta bort redundanta parametrar\n  mini    Hämta kondenserad JSON-svarsdata\n  schema  Hämta JSON Schema-struktur för svaret\n  clean   Rensa HTTP-svarscache\n\nUtdataformat: json, yaml, toml\n\nSnabbstart:\n  # Minimera begäran - ta automatiskt bort headers, query, body, cookie som inte påverkar svaret\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Seriellt läge - testa parametrar en och en (för parametrar med beroenden)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Anpassat matchningsvillkor - baserat på statuskod eller JSON-fält\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Hämta kondenserat svar (långa strängar trunkeras, arrayer behåller bara första/sista)\n  apix mini curl https://api.example.com\n\n  # Hämta svarsschema\n  apix schema curl https://api.example.com\n\n  # Bearbeta JSON från stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Rensa cache\n  apix clean\n\nAnvänd \"apix [command] --help\" för mer information om ett kommando."
+  },
+
+  "pure.short": {
+    "other": "Minimera HTTP-begäran och visa minimal begäran"
+  },
+  "pure.long": {
+    "other": "Kör curl-begäran och rensa, visa minimerad begäran.\n\nTestar automatiskt och tar bort headers, query, body, cookie som inte påverkar svarsstrukturen.\nStöder flera utdataformat: curl (standard), json, http.\n\nUttrycksmatchning (-m expr):\n  Använd --match-expr för att ange matchningsvillkor, stöder följande variabler:\n    status              HTTP-statuskod (int)\n    content_length      Svarskroppslängd (int)\n    line_count          Antal rader i svarskroppen (int)\n    headers             Svarshaders map (skiftlägesokänslig åtkomst)\n    body                Svarskroppens JSON-data (map/any)\n    $.field             Genväg för body.field\n\n  Operatorer: == != < > <= >= && || ! contains()\n\n  Exempel:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Standardutdata curl-kommando\n  apix pure curl https://httpbin.org/get\n\n  # Seriellt läge (testa en och en, för parametrar med beroenden)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Styr parallellism (minska samtidighet för att undvika rate limiting)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Utdata JSON-format (liknar HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Utdata HTTP-protokollformat\n  apix pure -t curl https://httpbin.org/get\n\n  # Matcha statuskod (standard är struktur)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Uttrycksmatchning: status 200 och JSON code lika med 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Uttrycksmatchning: Content-Type innehåller json (headers-åtkomst är skiftlägesokänslig)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST form data minimera\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Cookie minimera (testa varje cookie individuellt)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Anpassad DNS-uppslagning HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Använd system curl och inaktivera cache\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Hämta kondenserad JSON-data"
+  },
+  "mini.long": {
+    "other": "Hämta kondenserad JSON-data.\n\nLånga strängar trunkeras automatiskt (>30 tecken), arrayer behåller bara första och sista elementet.\n\nAnvändning:\n  apix mini [args] curl [curl args...]  # Från HTTP\n  cat data.json | apix mini [args]       # Från stdin"
+  },
+  "mini.example": {
+    "other": "  # Hämta kondenserat svar från HTTP\n  apix mini curl https://api.example.com\n\n  # Utdata YAML-format\n  apix mini -o yaml curl https://api.example.com\n\n  # Läs JSON från stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Hämta JSON Schema-struktur för svaret"
+  },
+  "schema.long": {
+    "other": "Hämta JSON-datastruktur (JSON Schema) för svaret.\n\nReturnerar JSON Schema-format som standard, stöder läsning från HTTP eller stdin.\n\nAnvändning:\n  apix schema [args] curl [curl args...]  # Från HTTP\n  cat data.json | apix schema [args]       # Från stdin"
+  },
+  "schema.example": {
+    "other": "  # Hämta svarsschema från HTTP\n  apix schema curl https://api.example.com\n\n  # Utdata YAML-format schema\n  apix schema -o yaml curl https://api.example.com\n\n  # Generera schema från stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Skriv ut versionsnummer"
+  },
+  "version.long": {
+    "other": "Skriv ut apix-versionsinformation."
+  },
+  "version.example": {
+    "other": "  # Kontrollera version\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Rensa alla cache-filer"
+  },
+  "clean.long": {
+    "other": "Rensa alla HTTP-svarscache-filer som lagras i temporär katalog.\n\nCache används för att accelerera upprepade HTTP-begäranden och undvika att begära samma URL flera gånger under minimering.\nKör detta kommando om du misstänker att cachedata är föråldrade eller har problem."
+  },
+  "clean.example": {
+    "other": "  # Rensa all cache\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Utdata JSON-format"
+  },
+  "flag.text": {
+    "other": "Utdata HTTP-protokoll textformat"
+  },
+  "flag.serial": {
+    "other": "Använd seriellt läge (minimera en och en)"
+  },
+  "flag.resolve": {
+    "other": "Anpassad DNS-uppslagning HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Parallellism (standard 8, sätt till 1 för seriellt)"
+  },
+  "flag.no-cache": {
+    "other": "Inaktivera cache"
+  },
+  "flag.match-mode": {
+    "other": "Matchningsläge: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Uttrycksmatchningsvillkor (när mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Använd system curl-kommando"
+  },
+  "flag.pretty": {
+    "other": "Vacker utdata"
+  },
+  "flag.out": {
+    "other": "Utdataformat: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Indenteringsmellanrum"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametrar:"
+  },
+  "msg.examples": {
+    "other": "Exempel:"
+  },
+  "msg.usage": {
+    "other": "Användning:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Cache rensad"
+  }
+}

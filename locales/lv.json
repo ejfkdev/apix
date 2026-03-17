@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API pieprasījumu attīrīšanas un atbilžu analīzes rīks"
+  },
+  "root.long": {
+    "other": "apix - API pieprasījumu attīrīšanas un atbilžu analīzes rīks\n\nAtbalsta HTTP pieprasījumu minimizēšanu, atbilžu shēmu izgūšanu un kondensētu JSON datu ģenerēšanu.\nPēc noklusējuma izmanto Go HTTP klientu, curl instalēšana nav nepieciešama.\n\nGalvenās komandas:\n  pure    Minimizējiet HTTP pieprasījumus, noņemot liekos parametrus\n  mini    Iegūstiet kondensētus JSON atbildes datus\n  schema  Iegūstiet atbildes JSON Schema struktūru\n  clean   Notīriet HTTP atbildes kešatmiņu\n\nIzvades formāti: json, yaml, toml\n\nĀtrais sākums:\n  # Minimizējiet pieprasījumu - automātiski noņemiet galvenes, parametrus, ķermeni un sīkdatnes, kas neietekmē atbildi\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Seriālais režīms - pārbaudiet parametrus vienu pēc otra (atkarīgajiem parametriem)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Pielāgota atbilstības nosacījums - pamatojoties uz statusa kodu vai JSON laukiem\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Iegūstiet kondensētu atbildi (garas virknes saīsinātas, masīvi saglabā tikai pirmo/pēdējo)\n  apix mini curl https://api.example.com\n\n  # Iegūstiet atbildes shēmu\n  apix schema curl https://api.example.com\n\n  # Apstrādājiet JSON no stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Notīriet kešatmiņu\n  apix clean\n\nIzmantojiet \"apix [command] --help\" lai iegūtu vairāk informācijas par komandu."
+  },
+
+  "pure.short": {
+    "other": "Minimizējiet HTTP pieprasījumu un izvadiet minimālo pieprasījumu"
+  },
+  "pure.long": {
+    "other": "Izpildiet curl pieprasījumu un attīriet, izvadiet minimizētu pieprasījumu.\n\nAutomātiski pārbaudiet un noņemiet galvenes, vaicājumus, ķermeni un sīkdatnes, kas neietekmē atbildes struktūru.\nAtbalsta vairākus izvades formātus: curl (pēc noklusējuma), json, http.\n\nIzteiksmju atbilstība (-m expr):\n  Izmantojiet --match-expr, lai norādītu atbilstības nosacījumus, atbalsta šādas mainīgos:\n    status              HTTP statusa kods (int)\n    content_length      Atbildes ķermeņa garums (int)\n    line_count          Atbildes ķermeņa rindiņu skaits (int)\n    headers             Atbildes galvenju karte (reģistrneatkarīga piekļuve)\n    body                Atbildes ķermeņa JSON dati (map/any)\n    $.field             Saīsne uz body.field\n\n  Operatori: == != < > <= >= && || ! contains()\n\n  Piemēri:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Noklusējuma curl komandas izvade\n  apix pure curl https://httpbin.org/get\n\n  # Seriālais režīms (pārbaudiet vienu pēc otra, atkarīgajiem parametriem)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Paralēlisma kontrole (samaziniet paralēlismu, lai izvairītos no ātruma ierobežojuma)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON formāta izvade (līdzīga HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTP protokola formāta izvade\n  apix pure -t curl https://httpbin.org/get\n\n  # Statusa koda atbilstība (pēc noklusējuma ir struktūra)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Izteiksmes atbilstība: statuss 200 un JSON kods vienāds ar 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Izteiksmes atbilstība: Content-Type satur json (galvenju piekļuve ir reģistrneatkarīga)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST veidlapas datu minimizēšana\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Sīkdatņu minimizēšana (pārbaudiet katru sīkdatni atsevišķi)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Pielāgots DNS izšķirtspēja HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Izmantojiet sistēmas curl un atspējojiet kešatmiņu\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Iegūstiet kondensētus JSON datus"
+  },
+  "mini.long": {
+    "other": "Iegūstiet kondensētus JSON datus.\n\nGarās virknes automātiski tiek saīsinātas (>30 rakstzīmes), masīvi saglabā tikai pirmo un pēdējo elementu.\n\nLietojums:\n  apix mini [args] curl [curl args...]  # No HTTP\n  cat data.json | apix mini [args]       # No stdin"
+  },
+  "mini.example": {
+    "other": "  # Iegūstiet kondensētu atbildi no HTTP\n  apix mini curl https://api.example.com\n\n  # YAML formāta izvade\n  apix mini -o yaml curl https://api.example.com\n\n  # Lasiet JSON no stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Iegūstiet atbildes JSON Schema struktūru"
+  },
+  "schema.long": {
+    "other": "Iegūstiet atbildes JSON datu struktūru (JSON Schema).\n\nPēc noklusējuma atgriež JSON Schema formātu, atbalsta lasīšanu no HTTP vai stdin.\n\nLietojums:\n  apix schema [args] curl [curl args...]  # No HTTP\n  cat data.json | apix schema [args]       # No stdin"
+  },
+  "schema.example": {
+    "other": "  # Iegūstiet atbildes shēmu no HTTP\n  apix schema curl https://api.example.com\n\n  # Izvadiet shēmu YAML formātā\n  apix schema -o yaml curl https://api.example.com\n\n  # Ģenerējiet shēmu no stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Drukāt versijas numuru"
+  },
+  "version.long": {
+    "other": "Drukāt apix versijas informāciju."
+  },
+  "version.example": {
+    "other": "  # Pārbaudiet versiju\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Notīrīt visas kešatmiņas failus"
+  },
+  "clean.long": {
+    "other": "Notīrīt visus HTTP atbilžu kešatmiņas failus, kas saglabāti pagaidu direktorijā.\n\nKešatmiņa tiek izmantota, lai paātrinātu atkārtotus HTTP pieprasījumus un izvairītos no pieprasījuma uz to pašu URL vairākas reizes minimizēšanas laikā.\nPalaist šo komandu, ja jums ir aizdomas, ka kešatmiņas dati ir novecojuši vai ir problēmas."
+  },
+  "clean.example": {
+    "other": "  # Notīrīt visu kešatmiņu\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Izvadīt JSON formātā"
+  },
+  "flag.text": {
+    "other": "Izvadīt HTTP protokola teksta formātā"
+  },
+  "flag.serial": {
+    "other": "Izmantot seriālo režīmu (minimizēt vienu pēc otra)"
+  },
+  "flag.resolve": {
+    "other": "Pielāgots DNS izšķirtspēja HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Paralēlisms (pēc noklusējuma 8, iestatiet uz 1 seriālajam)"
+  },
+  "flag.no-cache": {
+    "other": "Atspējot kešatmiņu"
+  },
+  "flag.match-mode": {
+    "other": "Atbilstības režīms: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Izteiksmes atbilstības nosacījums (kad mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Izmantot sistēmas curl komandu"
+  },
+  "flag.pretty": {
+    "other": "Skaidra izvade"
+  },
+  "flag.out": {
+    "other": "Izvades formāts: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Atkāpes atstarpes"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametri:"
+  },
+  "msg.examples": {
+    "other": "Piemēri:"
+  },
+  "msg.usage": {
+    "other": "Lietojums:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Kešatmiņa notīrīta"
+  }
+}

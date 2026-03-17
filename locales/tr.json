@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API isteği arındırma ve yanıt analizi aracı"
+  },
+  "root.long": {
+    "other": "apix - API isteği arındırma ve yanıt analizi aracı\n\nHTTP isteklerini minimize etme, yanıt şemaları çıkarma ve yoğunlaştırılmış JSON verileri oluşturmayı destekler.\nVarsayılan olarak Go HTTP istemcisi kullanır, curl kurulumu gerekmez.\n\nAna komutlar:\n  pure    Gereksiz parametreleri kaldırarak HTTP isteklerini minimize edin\n  mini    Yoğunlaştırılmış JSON yanıt verilerini alın\n  schema  Yanıtın JSON Schema yapısını alın\n  clean   HTTP yanıt önbelleğini temizleyin\n\nÇıktı formatları: json, yaml, toml\n\nHızlı başlangıç:\n  # İsteği minimize edin - yanıtı etkilemeyen başlıkları, sorguları, gövdeyi, çerezleri otomatik kaldırın\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Seri mod - parametreleri tek tek test edin (bağımlılıkları olan parametreler için)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Özel eşleşme koşulu - durum koduna veya JSON alanlarına dayalı\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Yoğunlaştırılmış yanıt alın (uzun dizeler kısaltılır, diziler sadece ilk/sonuncuyu tutar)\n  apix mini curl https://api.example.com\n\n  # Yanıt şemasını alın\n  apix schema curl https://api.example.com\n\n  # Standart girdiden JSON işleyin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Önbelleği temizleyin\n  apix clean\n\nBir komut hakkında daha fazla bilgi için \"apix [command] --help\" kullanın."
+  },
+
+  "pure.short": {
+    "other": "HTTP isteğini minimize edin ve minimal isteği çıktılayın"
+  },
+  "pure.long": {
+    "other": "curl isteğini yürütün ve arındırın, minimize edilmiş isteği çıktılayın.\n\nYanıt yapısını etkilemeyen başlıkları, sorgu parametrelerini, gövdeyi, çerezleri otomatik olarak test edin ve kaldırın.\nBirden fazla çıktı formatını destekler: curl (varsayılan), json, http.\n\nİfade eşleştirme (-m expr):\n  Eşleşme koşullarını belirtmek için --match-expr kullanın, aşağıdaki değişkenleri destekler:\n    status              HTTP durum kodu (int)\n    content_length      Yanıt gövdesi uzunluğu (int)\n    line_count          Yanıt gövdesi satır sayısı (int)\n    headers             Yanıt başlıkları haritası (büyük/küçük harf duyarsız erişim)\n    body                Yanıt gövdesi JSON verileri (map/any)\n    $.field             body.field için kısayol\n\n  Operatörler: == != < > <= >= && || ! contains()\n\n  Örnekler:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Varsayılan curl komutu çıktısı\n  apix pure curl https://httpbin.org/get\n\n  # Seri mod (tek tek test et, bağımlılıkları olan parametreler için)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Paralellik kontrolü (hız sınırlamasını önlemek için eşzamanlılığı azaltın)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON formatında çıktı (HAR benzeri)\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTP protokol formatında çıktı\n  apix pure -t curl https://httpbin.org/get\n\n  # Durum kodunu eşleştir (varsayılan yapıdır)\n  apix pure -m status curl https://httpbin.org/get\n\n  # İfade eşleştirme: durum 200 ve JSON kodu 0'a eşit\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # İfade eşleştirme: Content-Type json içeriyor (başlık erişimi büyük/küçük harf duyarsızdır)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST form verisi minimize\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Çerez minimize (her çerezi ayrı ayrı test et)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Özel DNS çözümlemesi HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Sistem curl kullan ve önbelleği devre dışı bırak\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Yoğunlaştırılmış JSON verileri alın"
+  },
+  "mini.long": {
+    "other": "Yoğunlaştırılmış JSON verileri alın.\n\nUzun dizeler otomatik olarak kısaltılır (>30 karakter), diziler sadece ilk ve son elemanları tutar.\n\nKullanım:\n  apix mini [args] curl [curl args...]  # HTTP'den\n  cat data.json | apix mini [args]       # Standart girdiden"
+  },
+  "mini.example": {
+    "other": "  # HTTP'den yoğunlaştırılmış yanıt alın\n  apix mini curl https://api.example.com\n\n  # YAML formatında çıktı\n  apix mini -o yaml curl https://api.example.com\n\n  # Standart girdiden JSON okuyun\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Yanıtın JSON Schema yapısını alın"
+  },
+  "schema.long": {
+    "other": "Yanıtın JSON veri yapısını (JSON Schema) alın.\n\nVarsayılan olarak JSON Schema formatı döndürür, HTTP veya standart girdiden okumayı destekler.\n\nKullanım:\n  apix schema [args] curl [curl args...]  # HTTP'den\n  cat data.json | apix schema [args]       # Standart girdiden"
+  },
+  "schema.example": {
+    "other": "  # HTTP'den yanıt şeması alın\n  apix schema curl https://api.example.com\n\n  # YAML formatında şema çıktısı\n  apix schema -o yaml curl https://api.example.com\n\n  # Standart girdiden şema oluşturun\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Sürüm numarasını yazdırın"
+  },
+  "version.long": {
+    "other": "apix sürüm bilgilerini yazdırın."
+  },
+  "version.example": {
+    "other": "  # Sürümü kontrol edin\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Tüm önbellek dosyalarını temizleyin"
+  },
+  "clean.long": {
+    "other": "Geçici dizinde depolanan tüm HTTP yanıt önbellek dosyalarını temizleyin.\n\nÖnbellek, tekrarlanan HTTP isteklerini hızlandırmak ve minimize sırasında aynı URL'ye birden fazla istek yapmayı önlemek için kullanılır.\nÖnbellek verilerinin süresi dolduğundan veya sorun olduğundan şüpheleniyorsanız bu komutu çalıştırın."
+  },
+  "clean.example": {
+    "other": "  # Tüm önbelleği temizleyin\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "JSON formatında çıktı"
+  },
+  "flag.text": {
+    "other": "HTTP protokolü metin formatında çıktı"
+  },
+  "flag.serial": {
+    "other": "Seri mod kullan (birer birer minimize et)"
+  },
+  "flag.resolve": {
+    "other": "Özel DNS çözümlemesi HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Paralellik (varsayılan 8, seri için 1 olarak ayarlayın)"
+  },
+  "flag.no-cache": {
+    "other": "Önbelleği devre dışı bırak"
+  },
+  "flag.match-mode": {
+    "other": "Eşleşme modu: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "İfade eşleşme koşulu (mode=expr olduğunda)"
+  },
+  "flag.use-curl": {
+    "other": "Sistem curl komutunu kullan"
+  },
+  "flag.pretty": {
+    "other": "Düzenli çıktı"
+  },
+  "flag.out": {
+    "other": "Çıktı formatı: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Girinti boşlukları"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametreler:"
+  },
+  "msg.examples": {
+    "other": "Örnekler:"
+  },
+  "msg.usage": {
+    "other": "Kullanım:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Önbellek temizlendi"
+  }
+}

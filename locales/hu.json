@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API kérese tisztító és válasz elemző eszköz"
+  },
+  "root.long": {
+    "other": "apix - API kérese tisztító és válasz elemző eszköz\n\nTámogatja a HTTP kérések minimalizálását, a válasz sémák kinyerését és a tömörített JSON adatok generálását.\nAlapértelmezés szerint Go HTTP klienst használ, curl telepítése nem szükséges.\n\nFő parancsok:\n  pure    HTTP kérések minimalizálása redundáns paraméterek eltávolításával\n  mini    Tömörített JSON válaszadatok lekérése\n  schema  A válasz JSON Schema szerkezetének lekérése\n  clean   HTTP válasz gyorsítótár törlése\n\nKimeneti formátumok: json, yaml, toml\n\nGyorsindítás:\n  # Kérés minimalizálása - automatikusan eltávolítja a fejléceket, query, body, cookie-kat, amelyek nem befolyásolják a választ\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Soros mód - paraméterek tesztelése egyesével (függőséggel rendelkező paraméterekhez)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Egyéni egyezési feltétel - státuszkód vagy JSON mezők alapján\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Tömörített válasz lekérése (hosszú szövegek csonkítva, tömbök csak első/utolsó elemet tartják meg)\n  apix mini curl https://api.example.com\n\n  # Válasz séma lekérése\n  apix schema curl https://api.example.com\n\n  # JSON feldolgozása stdin-ről\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Gyorsítótár törlése\n  apix clean\n\nHasználja az \"apix [command] --help\" parancsot további információért egy parancsról."
+  },
+
+  "pure.short": {
+    "other": "HTTP kérés minimalizálása és minimális kérés kimenetel"
+  },
+  "pure.long": {
+    "other": "Curl kérés végrehajtása és tisztítás, minimalizált kérés kimenetel.\n\nAutomatikusan teszteli és eltávolítja a fejléceket, query, body, cookie-kat, amelyek nem befolyásolják a válasz szerkezetét.\nTöbb kimeneti formátumot támogat: curl (alapértelmezett), json, http.\n\nKifejezés egyezés (-m expr):\n  Használja a --match-expr-t az egyezési feltételek megadásához, a következő változókat támogatja:\n    status              HTTP státuszkód (int)\n    content_length      Válasz törzs hossza (int)\n    line_count          Válasz törzs sorainak száma (int)\n    headers             Válasz fejlécek map (kis- és nagybetű-független hozzáférés)\n    body                Válasz törzs JSON adatai (map/any)\n    $.field             Gyorsbillentyű a body.field-hez\n\n  Operátorok: == != < > <= >= && || ! contains()\n\n  Példák:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Alapértelmezett curl parancs kimenetel\n  apix pure curl https://httpbin.org/get\n\n  # Soros mód (egyesével tesztelés, függőséggel rendelkező paraméterekhez)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Párhuzamosság szabályozása (csökkentse az egyidejűséget a rate limiting elkerülése érdekében)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON formátum kimenetel (hasonló a HAR-hoz)\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTP protokoll formátum kimenetel\n  apix pure -t curl https://httpbin.org/get\n\n  # Státuszkód egyezés (alapértelmezett a struktúra)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Kifejezés egyezés: státusz 200 és JSON code egyenlő 0-val\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Kifejezés egyezés: Content-Type tartalmaz json-t (a fejlécek hozzáférése kis- és nagybetű-független)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST form adatok minimalizálása\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Cookie minimalizálás (minden cookie-t egyesével tesztel)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Egyéni DNS feloldás HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Rendszer curl használata és gyorsítótár kikapcsolása\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Tömörített JSON adatok lekérése"
+  },
+  "mini.long": {
+    "other": "Tömörített JSON adatok lekérése.\n\nA hosszú szövegek automatikusan csonkítva vannak (>30 karakter), a tömbök csak az első és utolsó elemet tartják meg.\n\nHasználat:\n  apix mini [args] curl [curl args...]  # HTTP-ről\n  cat data.json | apix mini [args]       # stdin-ről"
+  },
+  "mini.example": {
+    "other": "  # Tömörített válasz lekérése HTTP-ről\n  apix mini curl https://api.example.com\n\n  # YAML formátum kimenetel\n  apix mini -o yaml curl https://api.example.com\n\n  # JSON olvasása stdin-ről\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "A válasz JSON Schema szerkezetének lekérése"
+  },
+  "schema.long": {
+    "other": "JSON adat szerkezet (JSON Schema) lekérése a válaszból.\n\nAlapértelmezés szerint JSON Schema formátumot ad vissza, támogatja az olvasást HTTP-ről vagy stdin-ről.\n\nHasználat:\n  apix schema [args] curl [curl args...]  # HTTP-ről\n  cat data.json | apix schema [args]       # stdin-ről"
+  },
+  "schema.example": {
+    "other": "  # Válasz séma lekérése HTTP-ről\n  apix schema curl https://api.example.com\n\n  # YAML formátumú séma kimenetel\n  apix schema -o yaml curl https://api.example.com\n\n  # Séma generálása stdin-ről\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Verziószám kiírása"
+  },
+  "version.long": {
+    "other": "apix verzióinformáció kiírása."
+  },
+  "version.example": {
+    "other": "  # Verzió ellenőrzése\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Minden gyorsítótár fájl törlése"
+  },
+  "clean.long": {
+    "other": "Az összes HTTP válasz gyorsítótár fájl törlése az ideiglenes könyvtárból.\n\nA gyorsítótár a megismételt HTTP kérések gyorsítására szolgál, és elkerüli ugyanannak az URL-nek a többszöri lekérését a minimalizálás során.\nFuttassa ezt a parancsot, ha gyanítja, hogy a gyorsítótár adatai elavultak vagy problémák vannak velük."
+  },
+  "clean.example": {
+    "other": "  # Összes gyorsítótár törlése\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "JSON formátum kimenetel"
+  },
+  "flag.text": {
+    "other": "HTTP protokoll szöveges formátum kimenetel"
+  },
+  "flag.serial": {
+    "other": "Soros mód használata (egyesével minimalizálás)"
+  },
+  "flag.resolve": {
+    "other": "Egyéni DNS feloldás HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Párhuzamosság (alapértelmezett 8, állítsa 1-re soros módhoz)"
+  },
+  "flag.no-cache": {
+    "other": "Gyorsítótár kikapcsolása"
+  },
+  "flag.match-mode": {
+    "other": "Egyezési mód: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Kifejezés egyezési feltétel (amikor mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Rendszer curl parancs használata"
+  },
+  "flag.pretty": {
+    "other": "Szép kimenetel"
+  },
+  "flag.out": {
+    "other": "Kimeneti formátum: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Behúzási szóközök"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Paraméterek:"
+  },
+  "msg.examples": {
+    "other": "Példák:"
+  },
+  "msg.usage": {
+    "other": "Használat:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Gyorsítótár törölve"
+  }
+}

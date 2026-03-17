@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Narzędzie do oczyszczania żądań API i analizy odpowiedzi"
+  },
+  "root.long": {
+    "other": "apix - Narzędzie do oczyszczania żądań API i analizy odpowiedzi\n\nObsługuje minimalizowanie żądań HTTP, ekstrakcję schematów odpowiedzi i generowanie skondensowanych danych JSON.\nDomyślnie używa klienta HTTP Go, nie wymaga instalacji curl.\n\nGłówne komendy:\n  pure    Minimalizuj żądania HTTP poprzez usuwanie zbędnych parametrów\n  mini    Pobierz skondensowane dane odpowiedzi JSON\n  schema  Pobierz strukturę JSON Schema odpowiedzi\n  clean   Wyczyść pamięć podręczną odpowiedzi HTTP\n\nFormaty wyjściowe: json, yaml, toml\n\nSzybki start:\n  # Minimalizuj żądanie - automatyczne usuwanie nagłówków, parametrów zapytania, ciała, ciasteczek, które nie wpływają na odpowiedź\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Tryb szeregowy - testuj parametry jeden po drugim (dla parametrów z zależnościami)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Niestandardowy warunek dopasowania - na podstawie kodu statusu lub pól JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Pobierz skondensowaną odpowiedź (długie łańcuchy skrócone, tablice zachowują tylko pierwszy/ostatni)\n  apix mini curl https://api.example.com\n\n  # Pobierz schemat odpowiedzi\n  apix schema curl https://api.example.com\n\n  # Przetwórz JSON ze standardowego wejścia\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Wyczyść pamięć podręczną\n  apix clean\n\nUżyj \"apix [command] --help\" aby uzyskać więcej informacji o komendzie."
+  },
+
+  "pure.short": {
+    "other": "Minimalizuj żądanie HTTP i wyświetl minimalne żądanie"
+  },
+  "pure.long": {
+    "other": "Wykonaj żądanie curl i oczyść, wyświetl zminimalizowane żądanie.\n\nAutomatycznie testuj i usuwaj nagłówki, parametry zapytania, ciało, ciasteczka, które nie wpływają na strukturę odpowiedzi.\nObsługuje wiele formatów wyjściowych: curl (domyślny), json, http.\n\nDopasowanie wyrażeniem (-m expr):\n  Użyj --match-expr aby określić warunki dopasowania, obsługuje następujące zmienne:\n    status              Kod statusu HTTP (int)\n    content_length      Długość ciała odpowiedzi (int)\n    line_count          Liczba linii ciała odpowiedzi (int)\n    headers             Mapa nagłówków odpowiedzi (dostęp bez uwzględniania wielkości liter)\n    body                Dane JSON ciała odpowiedzi (map/any)\n    $.field             Skrót dla body.field\n\n  Operatory: == != < > <= >= && || ! contains()\n\n  Przykłady:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Domyślne wyjście polecenia curl\n  apix pure curl https://httpbin.org/get\n\n  # Tryb szeregowy (testuj jeden po drugim, dla parametrów z zależnościami)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Kontrola równoległości (zmniejsz współbieżność aby uniknąć ograniczeń)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Wyjście w formacie JSON (podobne do HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Wyjście w formacie protokołu HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # Dopasuj kod statusu (domyślnie struktura)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Dopasowanie wyrażeniem: status 200 i kod JSON równy 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Dopasowanie wyrażeniem: Content-Type zawiera json (dostęp do nagłówków bez uwzględniania wielkości liter)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Minimalizacja danych formularza POST\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Minimalizacja ciasteczek (testuj każde ciasteczko osobno)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Niestandardowa rozdzielczość DNS HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Użyj systemowego curl i wyłącz pamięć podręczną\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Pobierz skondensowane dane JSON"
+  },
+  "mini.long": {
+    "other": "Pobierz skondensowane dane JSON.\n\nDługie łańcuchy są automatycznie skracane (>30 znaków), tablice zachowują tylko pierwszy i ostatni element.\n\nUżycie:\n  apix mini [args] curl [curl args...]  # Z HTTP\n  cat data.json | apix mini [args]       # Ze standardowego wejścia"
+  },
+  "mini.example": {
+    "other": "  # Pobierz skondensowaną odpowiedź z HTTP\n  apix mini curl https://api.example.com\n\n  # Wyjście w formacie YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # Odczytaj JSON ze standardowego wejścia\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Pobierz strukturę JSON Schema odpowiedzi"
+  },
+  "schema.long": {
+    "other": "Pobierz strukturę danych JSON (JSON Schema) odpowiedzi.\n\nZwraca format JSON Schema domyślnie, obsługuje odczyt z HTTP lub standardowego wejścia.\n\nUżycie:\n  apix schema [args] curl [curl args...]  # Z HTTP\n  cat data.json | apix schema [args]       # Ze standardowego wejścia"
+  },
+  "schema.example": {
+    "other": "  # Pobierz schemat odpowiedzi z HTTP\n  apix schema curl https://api.example.com\n\n  # Wyjście w formacie YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # Generuj schemat ze standardowego wejścia\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Wyświetl numer wersji"
+  },
+  "version.long": {
+    "other": "Wyświetl informacje o wersji apix."
+  },
+  "version.example": {
+    "other": "  # Sprawdź wersję\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Wyczyść wszystkie pliki pamięci podręcznej"
+  },
+  "clean.long": {
+    "other": "Wyczyść wszystkie pliki pamięci podręcznej odpowiedzi HTTP przechowywane w katalogu tymczasowym.\n\nPamięć podręczna jest używana do przyspieszania powtarzających się żądań HTTP i unikania wielokrotnego żądania tego samego URL podczas minimalizacji.\nUruchom tę komendę, jeśli podejrzewasz, że dane w pamięci podręcznej są nieaktualne lub mają problemy."
+  },
+  "clean.example": {
+    "other": "  # Wyczyść całą pamięć podręczną\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Wyjście w formacie JSON"
+  },
+  "flag.text": {
+    "other": "Wyjście w formacie tekstowym protokołu HTTP"
+  },
+  "flag.serial": {
+    "other": "Użyj trybu szeregowego (minimalizuj jeden po drugim)"
+  },
+  "flag.resolve": {
+    "other": "Niestandardowa rozdzielczość DNS HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Równoległość (domyślnie 8, ustaw 1 dla szeregowego)"
+  },
+  "flag.no-cache": {
+    "other": "Wyłącz pamięć podręczną"
+  },
+  "flag.match-mode": {
+    "other": "Tryb dopasowania: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Warunek dopasowania wyrażeniem (gdy mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Użyj systemowego polecenia curl"
+  },
+  "flag.pretty": {
+    "other": "Formatowane wyjście"
+  },
+  "flag.out": {
+    "other": "Format wyjścia: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Wcięcia w spacjach"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametry:"
+  },
+  "msg.examples": {
+    "other": "Przykłady:"
+  },
+  "msg.usage": {
+    "other": "Użycie:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Pamięć podręczna wyczyszczona"
+  }
+}

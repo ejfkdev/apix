@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "ابزار تصفیه درخواست API و تحلیل پاسخ"
+  },
+  "root.long": {
+    "other": "apix - ابزار تصفیه درخواست API و تحلیل پاسخ\n\nپشتیبانی از کوچک‌سازی درخواست‌های HTTP، استخراج طرحواره پاسخ، و تولید داده JSON فشرده.\nبه صورت پیش‌فرض از کلاینت Go HTTP استفاده می‌کند، نیازی به نصب curl نیست.\n\nدستورات اصلی:\n  pure    کوچک‌سازی درخواست‌های HTTP با حذف پارامترهای زائد\n  mini    دریافت داده JSON فشرده برای پاسخ\n  schema  دریافت ساختار JSON Schema پاسخ\n  clean   پاک کردن حافظه پنهان HTTP\n\nفرمت‌های خروجی: json, yaml, toml\n\nشروع سریع:\n  # کوچک‌سازی درخواست - حذف خودکار هدرها، پارامترها، بدنه و کوکی‌هایی که بر پاسخ تأثیر نمی‌گذارند\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # حالت سریالی - آزمایش پارامترها یکی‌یکی (برای پارامترهای وابسته)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # شرط تطابق سفارشی - بر اساس کد وضعیت یا فیلدهای JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # دریافت پاسخ فشرده (رشته‌های طولانی کوتاه شده، آرایه‌ها فقط اول و آخر را نگه می‌دارند)\n  apix mini curl https://api.example.com\n\n  # دریافت طرحواره پاسخ\n  apix schema curl https://api.example.com\n\n  # پردازش JSON از stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # پاک کردن حافظه پنهان\n  apix clean\n\nاز \"apix [command] --help\" برای اطلاعات بیشتر درباره دستور استفاده کنید."
+  },
+
+  "pure.short": {
+    "other": "کوچک‌سازی درخواست HTTP و خروجی درخواست حداقلی"
+  },
+  "pure.long": {
+    "other": "اجرای درخواست curl و تصفیه، خروجی درخواست کوچک شده.\n\nآزمایش و حذف خودکار هدرها، پارامترهای کوئری، بدنه و کوکی‌هایی که بر ساختار پاسخ تأثیر نمی‌گذارند.\nپشتیبانی از فرمت‌های خروجی متعدد: curl (پیش‌فرض)، json، http.\n\nتطابق عبارت (-m expr):\n  از --match-expr برای مشخص کردن شرایط تطابق استفاده کنید، متغیرهای زیر را پشتیبانی می‌کند:\n    status              کد وضعیت HTTP (int)\n    content_length      طول بدنه پاسخ (int)\n    line_count          تعداد خطوط بدنه پاسخ (int)\n    headers             نقشه هدرهای پاسخ (دسترسی غیرحساس به حروف)\n    body                داده JSON بدنه پاسخ (map/any)\n    $.field             میانبر برای body.field\n\n  عملگرها: == != < > <= >= && || ! contains()\n\n  مثال‌ها:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # خروجی پیش‌فرض دستور curl\n  apix pure curl https://httpbin.org/get\n\n  # حالت سریالی (آزمایش یکی‌یکی، برای پارامترهای وابسته)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # کنترل موازی‌سازی (کاهش همزمانی برای جلوگیری از محدودیت نرخ)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # خروجی فرمت JSON (شبیه HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # خروجی فرمت پروتکل HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # تطابق کد وضعیت (پیش‌فرض ساختار است)\n  apix pure -m status curl https://httpbin.org/get\n\n  # تطابق عبارت: وضعیت 200 و کد JSON برابر 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # تطابق عبارت: Content-Type شامل json باشد (دسترسی به هدرها غیرحساس به حروف است)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # کوچک‌سازی داده فرم POST\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # کوچک‌سازی کوکی (آزمایش هر کوکی به صورت جداگانه)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # تفکیک DNS سفارشی HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # استفاده از curl سیستم و غیرفعال کردن حافظه پنهان\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "دریافت داده JSON فشرده"
+  },
+  "mini.long": {
+    "other": "دریافت داده JSON فشرده.\n\nرشته‌های طولانی به صورت خودکار کوتاه می‌شوند (>30 کاراکتر)، آرایه‌ها فقط اول و آخر را نگه می‌دارند.\n\nنحوه استفاده:\n  apix mini [args] curl [curl args...]  # از HTTP\n  cat data.json | apix mini [args]       # از stdin"
+  },
+  "mini.example": {
+    "other": "  # دریافت پاسخ فشرده از HTTP\n  apix mini curl https://api.example.com\n\n  # خروجی فرمت YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # خواندن JSON از stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "دریافت ساختار JSON Schema پاسخ"
+  },
+  "schema.long": {
+    "other": "دریافت ساختار داده JSON (JSON Schema) پاسخ.\n\nبه صورت پیش‌فرض فرمت JSON Schema را برمی‌گرداند، پشتیبانی از خواندن از HTTP یا stdin.\n\nنحوه استفاده:\n  apix schema [args] curl [curl args...]  # از HTTP\n  cat data.json | apix schema [args]       # از stdin"
+  },
+  "schema.example": {
+    "other": "  # دریافت طرحواره پاسخ از HTTP\n  apix schema curl https://api.example.com\n\n  # خروجی طرحواره با فرمت YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # تولید طرحواره از stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "چاپ شماره نسخه"
+  },
+  "version.long": {
+    "other": "چاپ اطلاعات نسخه apix."
+  },
+  "version.example": {
+    "other": "  # بررسی نسخه\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "پاک کردن تمام فایل‌های حافظه پنهان"
+  },
+  "clean.long": {
+    "other": "پاک کردن تمام فایل‌های حافظه پنهان پاسخ HTTP ذخیره شده در پوشه موقت.\n\nحافظه پنهان برای تسریع درخواست‌های HTTP تکراری و جلوگیری از درخواست چندباره URL یکسان در حین کوچک‌سازی استفاده می‌شود.\nاین دستور را اگر مشکوک به منقضی شدن یا وجود مشکل در داده‌های حافظه پنهان هستید اجرا کنید."
+  },
+  "clean.example": {
+    "other": "  # پاک کردن تمام حافظه پنهان\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "خروجی فرمت JSON"
+  },
+  "flag.text": {
+    "other": "خروجی فرمت متنی پروتکل HTTP"
+  },
+  "flag.serial": {
+    "other": "استفاده از حالت سریالی (کوچک‌سازی یکی‌یکی)"
+  },
+  "flag.resolve": {
+    "other": "تفکیک DNS سفارشی HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "موازی‌سازی (پیش‌فرض 8، روی 1 برای سریالی تنظیم کنید)"
+  },
+  "flag.no-cache": {
+    "other": "غیرفعال کردن حافظه پنهان"
+  },
+  "flag.match-mode": {
+    "other": "حالت تطابق: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "شرط تطابق عبارت (هنگامی که mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "استفاده از دستور curl سیستم"
+  },
+  "flag.pretty": {
+    "other": "خروجی زیبا"
+  },
+  "flag.out": {
+    "other": "فرمت خروجی: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "فاصله تورفتگی"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "پارامترها:"
+  },
+  "msg.examples": {
+    "other": "مثال‌ها:"
+  },
+  "msg.usage": {
+    "other": "نحوه استفاده:"
+  },
+  "msg.cache_cleaned": {
+    "other": "حافظه پنهان پاک شد"
+  }
+}

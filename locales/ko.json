@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API 요청 정화 및 응답 분석 도구"
+  },
+  "root.long": {
+    "other": "apix - API 요청 정화 및 응답 분석 도구\n\nHTTP 요청 최소화, 응답 스키마 추출, 압축된 JSON 데이터 생성을 지원합니다.\n기본적으로 Go HTTP 클라이언트를 사용하며 curl 설치가 필요 없습니다.\n\n주요 기능:\n  pure    HTTP 요청을 최소화하여 중복 매개변수 제거\n  mini    압축된 JSON 응답 데이터 가져오기\n  schema  응답의 JSON 스키마 구조 가져오기\n  clean   HTTP 응답 캐시 지우기\n\n출력 형식: json, yaml, toml\n\n빠른 시작:\n  # 요청 최소화 - 응답에 영향을 주지 않는 headers, query, body, cookie 자동 제거\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # 직렬 모드 - 매개변수를 하나씩 테스트(의존성이 있는 경우 적합)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # 사용자 정의 일치 조건 - 상태 코드 또는 JSON 필드 기반\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # 압축 응답 가져오기(긴 문자열은 잘리고, 배열은 처음과 마지막만 유지)\n  apix mini curl https://api.example.com\n\n  # 응답 스키마 가져오기\n  apix schema curl https://api.example.com\n\n  # stdin에서 JSON 처리\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # 캐시 지우기\n  apix clean\n\n자세한 내용은 \"apix [command] --help\"를 참조하세요."
+  },
+
+  "pure.short": {
+    "other": "HTTP 요청 최소화 및 최소 요청 출력"
+  },
+  "pure.long": {
+    "other": "curl 요청을 실행하고 정화하여 최소화된 요청을 출력합니다.\n\n응답 구조에 영향을 주지 않는 headers, query, body, cookie를 자동으로 테스트하고 제거합니다.\n여러 출력 형식을 지원: curl(기본값), json, http.\n\n표현식 일치 (-m expr):\n  --match-expr로 일치 조건을 지정하며, 다음 변수를 지원합니다:\n    status              HTTP 상태 코드 (int)\n    content_length      응답 본문 길이 (int)\n    line_count          응답 본문 줄 수 (int)\n    headers             응답 헤더 맵(대소문자 구분 없는 접근)\n    body                응답 본문 JSON 데이터 (map/any)\n    $.field             body.field의 단축어\n\n  연산자: == != < > <= >= && || ! contains()\n\n  예시:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # 기본값으로 curl 명령 출력\n  apix pure curl https://httpbin.org/get\n\n  # 직렬 모드(하나씩 테스트, 매개변수에 의존성이 있는 경우 적합)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # 병렬도 제어(속도 제한 회피를 위해 병렬도 낮춤)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON 형식으로 출력(HAR 유사)\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTP 프로토콜 형식으로 출력\n  apix pure -t curl https://httpbin.org/get\n\n  # 상태 코드로 일치(기본값은 structure)\n  apix pure -m status curl https://httpbin.org/get\n\n  # 표현식 일치: 상태 200이고 JSON의 code가 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # 표현식 일치: Content-Type에 json 포함(headers 접근은 대소문자 구분 없음)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST 폼 데이터 최소화\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Cookie 최소화(각 cookie를 개별적으로 테스트)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # 사용자 정의 DNS 확인 HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # 시스템 curl 사용 및 캐시 비활성화\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "압축된 JSON 데이터 가져오기"
+  },
+  "mini.long": {
+    "other": "압축된 JSON 데이터를 가져옵니다.\n\n긴 문자열은 자동으로 잘리고(>30자), 배열은 처음과 마지막 요소만 유지됩니다.\n\n사용법:\n  apix mini [인수] curl [curl인수...]  # HTTP에서 가져오기\n  cat data.json | apix mini [인수]      # stdin에서 읽기"
+  },
+  "mini.example": {
+    "other": "  # HTTP에서 압축 응답 가져오기\n  apix mini curl https://api.example.com\n\n  # YAML 형식으로 출력\n  apix mini -o yaml curl https://api.example.com\n\n  # stdin에서 JSON 읽기\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "응답 JSON의 데이터 구조 가져오기"
+  },
+  "schema.long": {
+    "other": "응답 JSON의 데이터 구조(JSON Schema)를 가져옵니다.\n\n기본적으로 JSON Schema 형식을 반환하며 HTTP 또는 stdin에서 데이터를 읽는 것을 지원합니다.\n\n사용법:\n  apix schema [인수] curl [curl인수...]  # HTTP에서 가져오기\n  cat data.json | apix schema [인수]      # stdin에서 읽기"
+  },
+  "schema.example": {
+    "other": "  # HTTP에서 응답 스키마 가져오기\n  apix schema curl https://api.example.com\n\n  # YAML 형식의 스키마 출력\n  apix schema -o yaml curl https://api.example.com\n\n  # stdin에서 스키마 생성\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "버전 번호 출력"
+  },
+  "version.long": {
+    "other": "apix의 버전 정보를 출력합니다."
+  },
+  "version.example": {
+    "other": "  # 버전 확인\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "모든 캐시 파일 지우기"
+  },
+  "clean.long": {
+    "other": "임시 디렉터리에 저장된 모든 HTTP 응답 캐시 파일을 지웁니다.\n\n캐시는 반복적인 HTTP 요청을 가속화하고 최소화 중에 동일한 URL에 여러 번 요청하는 것을 피하기 위해 사용됩니다.\n캐시 데이터가 만료되었거나 문제가 있다고 의심되는 경우 이 명령을 실행하세요."
+  },
+  "clean.example": {
+    "other": "  # 모든 캐시 지우기\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "JSON 형식으로 출력"
+  },
+  "flag.text": {
+    "other": "HTTP 프로토콜 텍스트 형식으로 출력"
+  },
+  "flag.serial": {
+    "other": "직렬 모드 사용(하나씩 최소화)"
+  },
+  "flag.resolve": {
+    "other": "사용자 정의 DNS 확인 HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "병렬도(기본값 8, 1로 설정하면 직렬 강제)"
+  },
+  "flag.no-cache": {
+    "other": "캐시 비활성화"
+  },
+  "flag.match-mode": {
+    "other": "일치 모드: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "표현식 일치 조건(mode=expr时使用)"
+  },
+  "flag.use-curl": {
+    "other": "시스템 curl 명령 사용"
+  },
+  "flag.pretty": {
+    "other": "보기 좋은 형식으로 출력"
+  },
+  "flag.out": {
+    "other": "출력 형식: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "들여쓰기 공백 수"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [인수] curl [curl인수...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [인수] curl [curl인수...]\n  cat data.json | apix mini [인수]"
+  },
+  "usage.schema": {
+    "other": "apix schema [인수] curl [curl인수...]\n  cat data.json | apix schema [인수]"
+  },
+
+  "msg.params": {
+    "other": "인수:"
+  },
+  "msg.examples": {
+    "other": "예시:"
+  },
+  "msg.usage": {
+    "other": "사용법:"
+  },
+  "msg.cache_cleaned": {
+    "other": "캐시를 지웠습니다"
+  }
+}

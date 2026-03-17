@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API अनुरोध शुद्धिकरण और प्रतिक्रिया विश्लेषण उपकरण"
+  },
+  "root.long": {
+    "other": "apix - API अनुरोध शुद्धिकरण और प्रतिक्रिया विश्लेषण उपकरण\n\nHTTP अनुरोधों को कम करना, प्रतिक्रिया स्कीमा निकालना, और संक्षिप्त JSON डेटा उत्पन्न करना समर्थित है।\nडिफ़ॉल्ट रूप से Go HTTP क्लाइंट का उपयोग करता है, curl इंस्टॉलेशन की आवश्यकता नहीं है।\n\nमुख्य कमांड:\n  pure    अनावश्यक पैरामीटर हटाकर HTTP अनुरोधों को कम करें\n  mini    प्रतिक्रिया के लिए संक्षिप्त JSON डेटा प्राप्त करें\n  schema  प्रतिक्रिया की JSON Schema संरचना प्राप्त करें\n  clean   HTTP कैश साफ़ करें\n\nआउटपुट प्रारूप: json, yaml, toml\n\nत्वरित प्रारंभ:\n  # अनुरोध कम करें - हेडर, पैरामीटर, बॉडी और कुकीज़ को स्वचालित रूप से हटाएं जो प्रतिक्रिया को प्रभावित नहीं करते\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # सीरियल मोड - पैरामीटर को एक-एक करके परीक्षण करें (निर्भर पैरामीटर के लिए)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # कस्टम मैच स्थिति - स्थिति कोड या JSON फ़ील्ड के आधार पर\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # संक्षिप्त प्रतिक्रिया प्राप्त करें (लंबी स्ट्रिंग छोटी की गई, सरणियाँ केवल पहला/अंतिम रखती हैं)\n  apix mini curl https://api.example.com\n\n  # प्रतिक्रिया स्कीमा प्राप्त करें\n  apix schema curl https://api.example.com\n\n  # stdin से JSON प्रोसेस करें\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # कैश साफ़ करें\n  apix clean\n\nकिसी कमांड के बारे में अधिक जानकारी के लिए \"apix [command] --help\" का उपयोग करें।"
+  },
+
+  "pure.short": {
+    "other": "HTTP अनुरोध को कम करें और न्यूनतम अनुरोध आउटपुट करें"
+  },
+  "pure.long": {
+    "other": "curl अनुरोध निष्पादित करें और शुद्ध करें, कम किया हुआ अनुरोध आउटपुट करें।\n\nप्रतिक्रिया संरचना को प्रभावित न करने वाले हेडर, क्वेरी, बॉडी और कुकीज़ को स्वचालित रूप से परीक्षण और हटाएं।\nएकाधिक आउटपुट प्रारूपों का समर्थन करता है: curl (डिफ़ॉल्ट), json, http।\n\nअभिव्यक्ति मिलान (-m expr):\n  मिलान शर्त निर्दिष्ट करने के लिए --match-expr का उपयोग करें, निम्नलिखित चरों का समर्थन करता है:\n    status              HTTP स्थिति कोड (int)\n    content_length      प्रतिक्रिया बॉडी की लंबाई (int)\n    line_count          प्रतिक्रिया बॉडी की पंक्तियों की संख्या (int)\n    headers             प्रतिक्रिया हेडर मैप (केस-असंवेदी पहुँच)\n    body                प्रतिक्रिया बॉडी JSON डेटा (map/any)\n    $.field             body.field के लिए शॉर्टकट\n\n  ऑपरेटर: == != < > <= >= && || ! contains()\n\n  उदाहरण:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # डिफ़ॉल्ट curl कमांड आउटपुट\n  apix pure curl https://httpbin.org/get\n\n  # सीरियल मोड (एक-एक करके परीक्षण, निर्भर पैरामीटर के लिए)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # समानांतरता नियंत्रण (दर सीमा से बचने के लिए समानांतरता कम करें)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON प्रारूप आउटपुट (HAR जैसा)\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTP प्रोटोकॉल प्रारूप आउटपुट\n  apix pure -t curl https://httpbin.org/get\n\n  # स्थिति कोड मिलान (डिफ़ॉल्ट संरचना है)\n  apix pure -m status curl https://httpbin.org/get\n\n  # अभिव्यक्ति मिलान: स्थिति 200 और JSON कोड 0 के बराबर\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # अभिव्यक्ति मिलान: Content-Type में json शामिल है (हेडर पहुँच केस-असंवेदी है)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST फॉर्म डेटा कम करें\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # कुकी कम करें (प्रत्येक कुकी को व्यक्तिगत रूप से परीक्षण करें)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # कस्टम DNS रिज़ॉल्यूशन HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # सिस्टम curl का उपयोग करें और कैश अक्षम करें\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "संक्षिप्त JSON डेटा प्राप्त करें"
+  },
+  "mini.long": {
+    "other": "संक्षिप्त JSON डेटा प्राप्त करें।\n\nलंबी स्ट्रिंग स्वचालित रूप से छोटी की जाती हैं (>30 वर्ण), सरणियाँ केवल पहला और अंतिम तत्व रखती हैं।\n\nउपयोग:\n  apix mini [args] curl [curl args...]  # HTTP से\n  cat data.json | apix mini [args]       # stdin से"
+  },
+  "mini.example": {
+    "other": "  # HTTP से संक्षिप्त प्रतिक्रिया प्राप्त करें\n  apix mini curl https://api.example.com\n\n  # YAML प्रारूप आउटपुट\n  apix mini -o yaml curl https://api.example.com\n\n  # stdin से JSON पढ़ें\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "प्रतिक्रिया की JSON Schema संरचना प्राप्त करें"
+  },
+  "schema.long": {
+    "other": "प्रतिक्रिया का JSON डेटा संरचना (JSON Schema) प्राप्त करें।\n\nडिफ़ॉल्ट रूप से JSON Schema प्रारूप लौटाता है, HTTP या stdin से पढ़ने का समर्थन करता है।\n\nउपयोग:\n  apix schema [args] curl [curl args...]  # HTTP से\n  cat data.json | apix schema [args]       # stdin से"
+  },
+  "schema.example": {
+    "other": "  # HTTP से प्रतिक्रिया स्कीमा प्राप्त करें\n  apix schema curl https://api.example.com\n\n  # YAML प्रारूप में स्कीमा आउटपुट\n  apix schema -o yaml curl https://api.example.com\n\n  # stdin से स्कीमा उत्पन्न करें\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "संस्करण संख्या प्रिंट करें"
+  },
+  "version.long": {
+    "other": "apix संस्करण जानकारी प्रिंट करें।"
+  },
+  "version.example": {
+    "other": "  # संस्करण जांचें\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "सभी कैश फाइलें साफ़ करें"
+  },
+  "clean.long": {
+    "other": "अस्थायी निर्देशिका में संग्रहीत सभी HTTP प्रतिक्रिया कैश फाइलें साफ़ करें।\n\nकैश दोहराए गए HTTP अनुरोधों को तेज़ करने और कम करने के दौरान एक ही URL को कई बार अनुरोध करने से बचने के लिए उपयोग किया जाता है।\nयदि आपको संदेह है कि कैश डेटा समाप्त हो गया है या समस्याएं हैं, तो इस कमांड को चलाएं।"
+  },
+  "clean.example": {
+    "other": "  # सभी कैश साफ़ करें\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "JSON प्रारूप आउटपुट"
+  },
+  "flag.text": {
+    "other": "HTTP प्रोटोकॉल टेक्स्ट प्रारूप आउटपुट"
+  },
+  "flag.serial": {
+    "other": "सीरियल मोड का उपयोग करें (एक-एक करके कम करें)"
+  },
+  "flag.resolve": {
+    "other": "कस्टम DNS रिज़ॉल्यूशन HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "समानांतरता (डिफ़ॉल्ट 8, सीरियल के लिए 1 पर सेट करें)"
+  },
+  "flag.no-cache": {
+    "other": "कैश अक्षम करें"
+  },
+  "flag.match-mode": {
+    "other": "मिलान मोड: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "अभिव्यक्ति मिलान शर्त (जब mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "सिस्टम curl कमांड का उपयोग करें"
+  },
+  "flag.pretty": {
+    "other": "सुंदर आउटपुट"
+  },
+  "flag.out": {
+    "other": "आउटपुट प्रारूप: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "इंडेंट रिक्त स्थान"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "पैरामीटर:"
+  },
+  "msg.examples": {
+    "other": "उदाहरण:"
+  },
+  "msg.usage": {
+    "other": "उपयोग:"
+  },
+  "msg.cache_cleaned": {
+    "other": "कैश साफ़ हो गया"
+  }
+}

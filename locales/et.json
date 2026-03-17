@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API päringute puhastamise ja vastuste analüüsimise tööriist"
+  },
+  "root.long": {
+    "other": "apix - API päringute puhastamise ja vastuste analüüsimise tööriist\n\nToetab HTTP päringute minimeerimist, vastuste skeemide eraldamist ja kondenseeritud JSON-andmete genereerimist.\nKasutab vaikimisi Go HTTP klienti, curl-i paigaldamine ei ole vajalik.\n\nPeamised käsud:\n  pure    Minimeeri HTTP-päringuid, eemaldades üleliigsed parameetrid\n  mini    Saa kondenseeritud JSON-vastuse andmed\n  schema  Saa vastuse JSON Schema struktuur\n  clean   Puhasta HTTP-vastuse vahemälu\n\nVäljundvormingud: json, yaml, toml\n\nKiire alustamine:\n  # Minimeeri päringut - eemalda automaatselt päised, parameetrid, sisu ja küpsised, mis ei mõjuta vastust\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Jadarežiim - testi parameetreid ükshaaval (sõltuvate parameetrite jaoks)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Kohandatud vastavustingimus - põhineb olekukoodil või JSON-väljadel\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Saa kondenseeritud vastus (pikad stringid on lühendatud, massiivid hoiavad ainult esimest/viimast)\n  apix mini curl https://api.example.com\n\n  # Saa vastuse skeem\n  apix schema curl https://api.example.com\n\n  # Töötle JSON-i standard sisendist\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Puhasta vahemälu\n  apix clean\n\nKasuta \"apix [command] --help\" käsu kohta lisateabe saamiseks."
+  },
+
+  "pure.short": {
+    "other": "Minimeeri HTTP-päringut ja väljasta minimaalne päring"
+  },
+  "pure.long": {
+    "other": "Käivita curl-päring ja puhasta, väljasta minimeeritud päring.\n\nTesti ja eemalda automaatselt päised, päringud, sisu ja küpsised, mis ei mõjuta vastuse struktuuri.\nToetab mitut väljundvormingut: curl (vaikimisi), json, http.\n\nAvaldise vastavus (-m expr):\n  Kasuta --match-expr vastavustingimuste määramiseks, toetab järgmisi muutujaid:\n    status              HTTP olekukood (int)\n    content_length      Vastuse keha pikkus (int)\n    line_count          Vastuse keha ridade arv (int)\n    headers             Vastuse päiste kaart (tõstutundetu juurdepääs)\n    body                Vastuse keha JSON-andmed (map/any)\n    $.field             Otsetee body.field jaoks\n\n  Operaatorid: == != < > <= >= && || ! contains()\n\n  Näited:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Vaikimisi curl-käsu väljund\n  apix pure curl https://httpbin.org/get\n\n  # Jadarežiim (testi ükshaaval, sõltuvate parameetrite jaoks)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Paralleelsuse kontroll (vähenda paralleelsust kiiruse piiramise vältimiseks)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # JSON-vormingu väljund (sarnane HAR-ile)\n  apix pure -j curl https://httpbin.org/get\n\n  # HTTP-protokolli vormingu väljund\n  apix pure -t curl https://httpbin.org/get\n\n  # Olekukoodi vastavus (vaikimisi on struktuur)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Avaldise vastavus: olek 200 ja JSON-kood võrdne 0-ga\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Avaldise vastavus: Content-Type sisaldab json-i (päistele juurdepääs on tõstutundetu)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST-vormi andmete minimeerimine\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Küpsiste minimeerimine (testi iga küpsist eraldi)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Kohandatud DNS-lahendus HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Kasuta süsteemi curl ja keela vahemälu\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Saa kondenseeritud JSON-andmed"
+  },
+  "mini.long": {
+    "other": "Saa kondenseeritud JSON-andmed.\n\nPikad stringid lühendatakse automaatselt (>30 märki), massiivid hoiavad ainult esimest ja viimast elementi.\n\nKasutus:\n  apix mini [args] curl [curl args...]  # HTTP-st\n  cat data.json | apix mini [args]       # standard sisendist"
+  },
+  "mini.example": {
+    "other": "  # Saa kondenseeritud vastus HTTP-st\n  apix mini curl https://api.example.com\n\n  # YAML-vormingu väljund\n  apix mini -o yaml curl https://api.example.com\n\n  # Loe JSON-i standard sisendist\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Saa vastuse JSON Schema struktuur"
+  },
+  "schema.long": {
+    "other": "Saa vastuse JSON-andmete struktuur (JSON Schema).\n\nTagastab vaikimisi JSON Schema vormingu, toetab lugemist HTTP-st või standard sisendist.\n\nKasutus:\n  apix schema [args] curl [curl args...]  # HTTP-st\n  cat data.json | apix schema [args]       # standard sisendist"
+  },
+  "schema.example": {
+    "other": "  # Saa vastuse skeem HTTP-st\n  apix schema curl https://api.example.com\n\n  # Väljasta skeem YAML-vormingus\n  apix schema -o yaml curl https://api.example.com\n\n  # Genereeri skeem standard sisendist\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Prindi versiooninumber"
+  },
+  "version.long": {
+    "other": "Prindi apix-i versiooni teave."
+  },
+  "version.example": {
+    "other": "  # Kontrolli versiooni\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Puhasta kõik vahemälu failid"
+  },
+  "clean.long": {
+    "other": "Puhasta kõik ajutises kaustas salvestatud HTTP-vastuse vahemälu failid.\n\nVahemälu kasutatakse korduvate HTTP-päringute kiirendamiseks ja sama URL-i mitmekordse pärimise vältimiseks minimeerimise ajal.\nKäivita see käsk, kui kahtlustad, et vahemälu andmed on aegunud või neil on probleeme."
+  },
+  "clean.example": {
+    "other": "  # Puhasta kogu vahemälu\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Väljasta JSON-vormingus"
+  },
+  "flag.text": {
+    "other": "Väljasta HTTP-protokolli tekstivormingus"
+  },
+  "flag.serial": {
+    "other": "Kasuta jadarežiimi (minimeeri ükshaaval)"
+  },
+  "flag.resolve": {
+    "other": "Kohandatud DNS-lahendus HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Paralleelsus (vaikimisi 8, seadista 1 jadarežiimi jaoks)"
+  },
+  "flag.no-cache": {
+    "other": "Keela vahemälu"
+  },
+  "flag.match-mode": {
+    "other": "Vastavusrežiim: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Avaldise vastavustingimus (kui mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Kasuta süsteemi curl-käsku"
+  },
+  "flag.pretty": {
+    "other": "Ilus väljund"
+  },
+  "flag.out": {
+    "other": "Väljundvorming: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Taande tühikud"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parameetrid:"
+  },
+  "msg.examples": {
+    "other": "Näited:"
+  },
+  "msg.usage": {
+    "other": "Kasutus:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Vahemälu puhastatud"
+  }
+}

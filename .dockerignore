@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+docs/
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Build artifacts
+apix
+apix.exe
+*.tar.gz
+*.zip
+dist/
+
+# Test
+coverage.out
+*_test.go
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.temp
+*.log

@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API-anmodningsrensning og svarsanalyseværktøj"
+  },
+  "root.long": {
+    "other": "apix - API-anmodningsrensning og svarsanalyseværktøj\n\nUnderstøtter minimering af HTTP-anmodninger, udtrækning af svarsskemaer og generering af kondenseret JSON-data.\nBruger Go HTTP-klient som standard, ingen curl-installation påkrævet.\n\nHovedkommandoer:\n  pure    Minimer HTTP-anmodninger ved at fjerne redundante parametre\n  mini    Hent kondenseret JSON-svarsdat\n  schema  Hent JSON Schema-struktur af svaret\n  clean   Rens HTTP-svarscache\n\nOutputformater: json, yaml, toml\n\nHurtig start:\n  # Minimer anmodning - fjern automatisk headers, query, body, cookie der ikke påvirker svaret\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Seriel tilstand - test parametre én efter én (for parametre med afhængigheder)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Brugerdefineret match-betingelse - baseret på statuskode eller JSON-felter\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Hent kondenseret svar (lange strenge trunkeres, arrays beholder kun første/sidste)\n  apix mini curl https://api.example.com\n\n  # Hent svarsskema\n  apix schema curl https://api.example.com\n\n  # Behandl JSON fra stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Rens cache\n  apix clean\n\nBrug \"apix [command] --help\" for mere information om en kommando."
+  },
+
+  "pure.short": {
+    "other": "Minimer HTTP-anmodning og output minimal anmodning"
+  },
+  "pure.long": {
+    "other": "Udfør curl-anmodning og rens, output minimeret anmodning.\n\nTester automatisk og fjerner headers, query, body, cookie der ikke påvirker svarsstrukturen.\nUnderstøtter flere outputformater: curl (standard), json, http.\n\nUdtryksmatchning (-m expr):\n  Brug --match-expr til at angive match-betingelser, understøtter følgende variabler:\n    status              HTTP-statuskode (int)\n    content_length      Svarskropslængde (int)\n    line_count          Antal linjer i svarskroppen (int)\n    headers             Svarsheaders map (case-insensitiv adgang)\n    body                Svarskroppens JSON-data (map/any)\n    $.field             Genvej for body.field\n\n  Operatorer: == != < > <= >= && || ! contains()\n\n  Eksempler:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Standard output curl-kommando\n  apix pure curl https://httpbin.org/get\n\n  # Seriel tilstand (test én efter én, for parametre med afhængigheder)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Styr parallelisme (reducer samtidighed for at undgå rate limiting)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Output JSON-format (ligesom HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Output HTTP-protokolformat\n  apix pure -t curl https://httpbin.org/get\n\n  # Match statuskode (standard er struktur)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Udtryksmatchning: status 200 og JSON code lig med 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Udtryksmatchning: Content-Type indeholder json (headers-adgang er case-insensitiv)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST form data minimering\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Cookie minimering (test hver cookie individuelt)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Brugerdefineret DNS-opløsning HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Brug system curl og deaktiver cache\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Hent kondenseret JSON-data"
+  },
+  "mini.long": {
+    "other": "Hent kondenseret JSON-data.\n\nLange strenge trunkeres automatisk (>30 tegn), arrays beholder kun første og sidste element.\n\nBrug:\n  apix mini [args] curl [curl args...]  # Fra HTTP\n  cat data.json | apix mini [args]       # Fra stdin"
+  },
+  "mini.example": {
+    "other": "  # Hent kondenseret svar fra HTTP\n  apix mini curl https://api.example.com\n\n  # Output YAML-format\n  apix mini -o yaml curl https://api.example.com\n\n  # Læs JSON fra stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Hent JSON Schema-struktur af svaret"
+  },
+  "schema.long": {
+    "other": "Hent JSON-datastruktur (JSON Schema) af svaret.\n\nReturnerer JSON Schema-format som standard, understøtter læsning fra HTTP eller stdin.\n\nBrug:\n  apix schema [args] curl [curl args...]  # Fra HTTP\n  cat data.json | apix schema [args]       # Fra stdin"
+  },
+  "schema.example": {
+    "other": "  # Hent svarsskema fra HTTP\n  apix schema curl https://api.example.com\n\n  # Output YAML-format skema\n  apix schema -o yaml curl https://api.example.com\n\n  # Generer skema fra stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Udskriv versionsnummer"
+  },
+  "version.long": {
+    "other": "Udskriv apix-versionsinformation."
+  },
+  "version.example": {
+    "other": "  # Tjek version\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Rens alle cache-filer"
+  },
+  "clean.long": {
+    "other": "Rens alle HTTP-svarscache-filer gemt i midlertidig mappe.\n\nCache bruges til at accelerere gentagne HTTP-anmodninger og undgå at anmode om den samme URL flere gange under minimering.\nKør denne kommando hvis du mistænker at cachedata er udløbet eller har problemer."
+  },
+  "clean.example": {
+    "other": "  # Rens al cache\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Output JSON-format"
+  },
+  "flag.text": {
+    "other": "Output HTTP-protokol tekstformat"
+  },
+  "flag.serial": {
+    "other": "Brug seriel tilstand (minimer én efter én)"
+  },
+  "flag.resolve": {
+    "other": "Brugerdefineret DNS-opløsning HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Parallelisme (standard 8, sæt til 1 for seriel)"
+  },
+  "flag.no-cache": {
+    "other": "Deaktiver cache"
+  },
+  "flag.match-mode": {
+    "other": "Match-tilstand: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Udtryksmatch-betingelse (når mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Brug system curl-kommando"
+  },
+  "flag.pretty": {
+    "other": "Pænt output"
+  },
+  "flag.out": {
+    "other": "Outputformat: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Indrykningsmellemrum"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametre:"
+  },
+  "msg.examples": {
+    "other": "Eksempler:"
+  },
+  "msg.usage": {
+    "other": "Brug:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Cache renset"
+  }
+}

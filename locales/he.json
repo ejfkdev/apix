@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "כלי טיהור בקשות API וניתוח תשובות"
+  },
+  "root.long": {
+    "other": "apix - כלי טיהור בקשות API וניתוח תשובות\n\nתומך במזעור בקשות HTTP, חילוץ סכימות תשובה ויצירת נתוני JSON דחוסים.\nמשתמש בלקוח HTTP Go כברירת מחדל, אין צורך בהתקנת curl.\n\nפונקציות עיקריות:\n  pure    מזעור בקשות HTTP על ידי הסרת פרמטרים מיותרים\n  mini    קבלת נתוני תשובת JSON דחוסים\n  schema  קבלת מבנה סכימת JSON של התשובה\n  clean   ניקוי מטמון תשובות HTTP\n\nפורמטי פלט: json, yaml, toml\n\nהתחלה מהירה:\n  # מזעור בקשה - הסרה אוטומטית של headers, query, body, cookie שאינם משפיעים על התשובה\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # מצב טורי - בדיקת פרמטרים אחד אחד (מתאים לפרמטרים עם תלויות)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # תנאי התאמה מותאם אישית - מבוסס על קוד סטטוס או שדות JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # קבלת תשובה דחוסה (מחרוזות ארוכות נחתכות, מערכים שומרים ראשון ואחרון בלבד)\n  apix mini curl https://api.example.com\n\n  # קבלת סכימת התשובה\n  apix schema curl https://api.example.com\n\n  # עיבוד JSON מ-stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # ניקוי מטמון\n  apix clean\n\nהשתמש ב-\"apix [command] --help\" למידע נוסף על פקודה."
+  },
+
+  "pure.short": {
+    "other": "מזעור בקשת HTTP והפלט של בקשה מינימלית"
+  },
+  "pure.long": {
+    "other": "הרצת בקשת curl וטיהור, הפלט של בקשה מזערית.\n\nבדיקה והסרה אוטומטית של headers, query, body, cookie שאינם משפיעים על מבנה התשובה.\nתומך במספר פורמטי פלט: curl (ברירת מחדל), json, http.\n\nהתאמת ביטויים (-m expr):\n  השתמש ב- --match-expr כדי לציין תנאי התאמה, תומך במשתנים הבאים:\n    status              קוד סטטוס HTTP (int)\n    content_length      אורך גוף התשובה (int)\n    line_count          מספר שורות גוף התשובה (int)\n    headers             מפתח headers של התשובה (גישה לא תלוית רישיות)\n    body                נתוני JSON של גוף התשובה (map/any)\n    $.field             קיצור ל- body.field\n\n  אופרטורים: == != < > <= >= && || ! contains()\n\n  דוגמאות:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # פלט ברירת המחדל של פקודת curl\n  apix pure curl https://httpbin.org/get\n\n  # מצב טורי (בדיקה אחד אחד, לפרמטרים עם תלויות)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # שליטה במקביליות (הפחתת תחרות כדי להימנע מהגבלת קצב)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # פלט בפורמט JSON (דומה ל-HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # פלט בפורמט פרוטוקול HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # התאמת קוד סטטוס (ברירת המחדל היא structure)\n  apix pure -m status curl https://httpbin.org/get\n\n  # התאמת ביטוי: סטטוס 200 וקוד JSON שווה ל-0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # התאמת ביטוי: Content-Type מכיל json (גישה ל-headers לא תלוית רישיות)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # מזעור נתוני טופס POST\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # מזעור Cookie (בדיקת כל cookie בנפרד)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # פתרון DNS מותאם אישית HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # שימוש ב-curl המערכתי והשבתת מטמון\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "קבלת נתוני JSON דחוסים"
+  },
+  "mini.long": {
+    "other": "קבלת נתוני JSON דחוסים.\n\nמחרוזות ארוכות נחתכות אוטומטית (>30 תווים), מערכים שומרים רק את האיבר הראשון והאחרון.\n\nשימוש:\n  apix mini [args] curl [curl args...]  # מ-HTTP\n  cat data.json | apix mini [args]       # מ-stdin"
+  },
+  "mini.example": {
+    "other": "  # קבלת תשובה דחוסה מ-HTTP\n  apix mini curl https://api.example.com\n\n  # פלט בפורמט YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # קריאת JSON מ-stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "קבלת מבנה נתוני JSON של התשובה"
+  },
+  "schema.long": {
+    "other": "קבלת מבנה נתוני JSON של התשובה (JSON Schema).\n\nמחזיר פורמט JSON Schema כברירת מחדל, תומך בקריאה מ-HTTP או stdin.\n\nשימוש:\n  apix schema [args] curl [curl args...]  # מ-HTTP\n  cat data.json | apix schema [args]       # מ-stdin"
+  },
+  "schema.example": {
+    "other": "  # קבלת סכימת תשובה מ-HTTP\n  apix schema curl https://api.example.com\n\n  # פלט הסכימה בפורמט YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # יצירת סכימה מ-stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "הדפסת מספר גרסה"
+  },
+  "version.long": {
+    "other": "הדפסת מידע גרסה של apix."
+  },
+  "version.example": {
+    "other": "  # בדיקת גרסה\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "ניקוי כל קבצי המטמון"
+  },
+  "clean.long": {
+    "other": "ניקוי כל קבצי המטמון של תשובות HTTP המאוחסנים בתיקייה הזמנית.\n\nהמטמון משמש להאצת בקשות HTTP חוזרות ולהימנע מבקשת אותו URL מספר פעמים במהלך המזעור.\nהפעל פקודה זו אם אתה חושד שנתוני המטמון פגו או שיש בהם בעיות."
+  },
+  "clean.example": {
+    "other": "  # ניקוי כל המטמון\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "פלט בפורמט JSON"
+  },
+  "flag.text": {
+    "other": "פלט בפורמט טקסט פרוטוקול HTTP"
+  },
+  "flag.serial": {
+    "other": "שימוש במצב טורי (מזעור אחד אחד)"
+  },
+  "flag.resolve": {
+    "other": "פתרון DNS מותאם אישית HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "מקביליות (ברירת מחדל 8, הגדרה ל-1 לטורי)"
+  },
+  "flag.no-cache": {
+    "other": "השבתת מטמון"
+  },
+  "flag.match-mode": {
+    "other": "מצב התאמה: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "תנאי התאמת ביטוי (כאשר mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "שימוש בפקודת curl המערכתית"
+  },
+  "flag.pretty": {
+    "other": "פלט מעוצב"
+  },
+  "flag.out": {
+    "other": "פורמט פלט: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "רווחי הזחה"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "פרמטרים:"
+  },
+  "msg.examples": {
+    "other": "דוגמאות:"
+  },
+  "msg.usage": {
+    "other": "שימוש:"
+  },
+  "msg.cache_cleaned": {
+    "other": "המטמון נוקה"
+  }
+}

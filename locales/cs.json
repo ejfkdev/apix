@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Nástroj pro čištění API požadavků a analýzu odpovědí"
+  },
+  "root.long": {
+    "other": "apix - Nástroj pro čištění API požadavků a analýzu odpovědí\n\nPodporuje minimalizaci HTTP požadavků, extrakci schémat odpovědí a generování kondenzovaných JSON dat.\nVe výchozím nastavení používá Go HTTP klienta, instalace curl není vyžadována.\n\nHlavní příkazy:\n  pure    Minimalizujte HTTP požadavky odstraněním redundantních parametrů\n  mini    Získejte kondenzovaná JSON data odpovědi\n  schema  Získejte strukturu JSON Schema odpovědi\n  clean   Vyčistěte mezipaměť HTTP odpovědí\n\nVýstupní formáty: json, yaml, toml\n\nRychlý start:\n  # Minimalizujte požadavek - automaticky odstraňte hlavičky, query, body, cookie které neovlivňují odpověď\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Sériový režim - testujte parametry jeden po druhém (pro parametry se závislostmi)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Vlastní podmínka shody - na základě stavového kódu nebo JSON polí\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Získejte kondenzovanou odpověď (dlouhé řetězce jsou zkráceny, pole zachovávají pouze první/poslední)\n  apix mini curl https://api.example.com\n\n  # Získejte schéma odpovědi\n  apix schema curl https://api.example.com\n\n  # Zpracujte JSON ze stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Vyčistěte mezipaměť\n  apix clean\n\nPoužijte \"apix [command] --help\" pro více informací o příkazu."
+  },
+
+  "pure.short": {
+    "other": "Minimalizujte HTTP požadavek a vypište minimální požadavek"
+  },
+  "pure.long": {
+    "other": "Spusťte curl požadavek a vyčistěte, vypište minimalizovaný požadavek.\n\nAutomaticky testuje a odstraňuje hlavičky, query, body, cookie které neovlivňují strukturu odpovědi.\nPodporuje více výstupních formátů: curl (výchozí), json, http.\n\nShoda výrazů (-m expr):\n  Použijte --match-expr pro určení podmínek shody, podporuje následující proměnné:\n    status              HTTP stavový kód (int)\n    content_length      Délka těla odpovědi (int)\n    line_count          Počet řádků těla odpovědi (int)\n    headers             Mapa hlaviček odpovědi (přístup bez rozlišování velikosti písmen)\n    body                JSON data těla odpovědi (map/any)\n    $.field             Zkratka pro body.field\n\n  Operátory: == != < > <= >= && || ! contains()\n\n  Příklady:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Výchozí výstup curl příkazu\n  apix pure curl https://httpbin.org/get\n\n  # Sériový režim (testujte jeden po druhém, pro parametry se závislostmi)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Řízení paralelismu (snížení souběžnosti pro předcházení omezení rychlosti)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Výstup JSON formátu (podobné HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Výstup formátu HTTP protokolu\n  apix pure -t curl https://httpbin.org/get\n\n  # Shoda stavového kódu (výchozí je struktura)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Shoda výrazu: status 200 a JSON code rovná se 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Shoda výrazu: Content-Type obsahuje json (přístup k hlavičkám bez rozlišování velikosti písmen)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Minimalizace POST form dat\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Minimalizace cookie (testujte každou cookie individuálně)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Vlastní DNS rozlišení HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Použijte systémový curl a zakažte mezipaměť\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Získejte kondenzovaná JSON data"
+  },
+  "mini.long": {
+    "other": "Získejte kondenzovaná JSON data.\n\nDlouhé řetězce jsou automaticky zkráceny (>30 znaků), pole zachovávají pouze první a poslední prvek.\n\nPoužití:\n  apix mini [args] curl [curl args...]  # Z HTTP\n  cat data.json | apix mini [args]       # Ze stdin"
+  },
+  "mini.example": {
+    "other": "  # Získejte kondenzovanou odpověď z HTTP\n  apix mini curl https://api.example.com\n\n  # Výstup YAML formátu\n  apix mini -o yaml curl https://api.example.com\n\n  # Čtení JSON ze stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Získejte strukturu JSON Schema odpovědi"
+  },
+  "schema.long": {
+    "other": "Získejte strukturu JSON dat (JSON Schema) odpovědi.\n\nVrací formát JSON Schema ve výchozím nastavení, podporuje čtení z HTTP nebo stdin.\n\nPoužití:\n  apix schema [args] curl [curl args...]  # Z HTTP\n  cat data.json | apix schema [args]       # Ze stdin"
+  },
+  "schema.example": {
+    "other": "  # Získejte schéma odpovědi z HTTP\n  apix schema curl https://api.example.com\n\n  # Výstup schématu ve formátu YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # Generujte schéma ze stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Vytiskněte číslo verze"
+  },
+  "version.long": {
+    "other": "Vytiskněte informace o verzi apix."
+  },
+  "version.example": {
+    "other": "  # Zkontrolujte verzi\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Vyčistěte všechny soubory mezipaměti"
+  },
+  "clean.long": {
+    "other": "Vyčistěte všechny soubory mezipaměti HTTP odpovědí uložené v dočasné složce.\n\nMezipaměť se používá k urychlení opakovaných HTTP požadavků a vyhýbání se opakovanému požadování stejné URL během minimalizace.\nSpusťte tento příkaz, pokud podezříváte, že data mezipaměti jsou zastaralá nebo mají problémy."
+  },
+  "clean.example": {
+    "other": "  # Vyčistěte všechnu mezipaměť\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Výstup JSON formátu"
+  },
+  "flag.text": {
+    "other": "Výstup textového formátu HTTP protokolu"
+  },
+  "flag.serial": {
+    "other": "Použijte sériový režim (minimalizujte jeden po druhém)"
+  },
+  "flag.resolve": {
+    "other": "Vlastní DNS rozlišení HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Paralelismus (výchozí 8, nastavte na 1 pro sériový)"
+  },
+  "flag.no-cache": {
+    "other": "Zakázat mezipaměť"
+  },
+  "flag.match-mode": {
+    "other": "Režim shody: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Podmínka shody výrazu (když mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Použijte systémový curl příkaz"
+  },
+  "flag.pretty": {
+    "other": "Pěkný výstup"
+  },
+  "flag.out": {
+    "other": "Výstupní formát: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Odsazovací mezery"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametry:"
+  },
+  "msg.examples": {
+    "other": "Příklady:"
+  },
+  "msg.usage": {
+    "other": "Použití:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Mezipaměť vyčištěna"
+  }
+}

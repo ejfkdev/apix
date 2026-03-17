@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Orodje za čiščenje API zahtev in analizo odgovorov"
+  },
+  "root.long": {
+    "other": "apix - Orodje za čiščenje API zahtev in analizo odgovorov\n\nPodpira minimiziranje HTTP zahtev, ekstrahiranje shem odgovorov in generiranje kondenziranih JSON podatkov.\nPrivzeto uporablja Go HTTP odjemalca, namestitev curl ni potrebna.\n\nGlavni ukazi:\n  pure    Minimiziraj HTTP zahteve z odstranjevanjem odvečnih parametrov\n  mini    Pridobi kondenzirane JSON podatke odgovora\n  schema  Pridobi JSON Schema strukturo odgovora\n  clean   Počisti HTTP predpomnilnik odgovorov\n\nIzhodni formati: json, yaml, toml\n\nHitri začetek:\n  # Minimiziraj zahtevo - samodejno odstrani glave, parametre, telo in piškotke, ki ne vplivajo na odgovor\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Serijski način - testiraj parametre enega za drugim (za odvisne parametre)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Pogoj ujemanja po meri - na podlagi kode stanja ali JSON polj\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Pridobi kondenziran odgovor (dolgi nizi so skrajšani, polja ohranijo samo prvi/zadnji)\n  apix mini curl https://api.example.com\n\n  # Pridobi shemo odgovora\n  apix schema curl https://api.example.com\n\n  # Obdelaj JSON iz stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Počisti predpomnilnik\n  apix clean\n\nUporabi \"apix [command] --help\" za več informacij o ukazu."
+  },
+
+  "pure.short": {
+    "other": "Minimiziraj HTTP zahtevo in izpiši minimalno zahtevo"
+  },
+  "pure.long": {
+    "other": "Izvedi curl zahtevo in očisti, izpiši minimizirano zahtevo.\n\nSamodejno testiraj in odstrani glave, poizvedbe, telo in piškotke, ki ne vplivajo na strukturo odgovora.\nPodpira več izhodnih formatov: curl (privzeto), json, http.\n\nUjemanje izrazov (-m expr):\n  Uporabi --match-expr za določitev pogojev ujemanja, podpira naslednje spremenljivke:\n    status              HTTP koda stanja (int)\n    content_length      Dolžina telesa odgovora (int)\n    line_count          Število vrstic telesa odgovora (int)\n    headers             Zemljevid glav odgovora (dostop neobčutljiv na velikost črk)\n    body                JSON podatki telesa odgovora (map/any)\n    $.field             Bližnjica za body.field\n\n  Operatorji: == != < > <= >= && || ! contains()\n\n  Primeri:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Privzeti izhod ukaza curl\n  apix pure curl https://httpbin.org/get\n\n  # Serijski način (testiraj enega za drugim, za odvisne parametre)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Nadzor vzporednosti (zmanjšaj vzporednost za izogib omejevanju hitrosti)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Izhod v formatu JSON (podobno kot HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Izhod v formatu HTTP protokola\n  apix pure -t curl https://httpbin.org/get\n\n  # Ujemanje kode stanja (privzeto je struktura)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Ujemanje izraza: stanje 200 in JSON koda enaka 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Ujemanje izraza: Content-Type vsebuje json (dostop do glav je neobčutljiv na velikost črk)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Minimiziranje POST obrazcev podatkov\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Minimiziranje piškotkov (testiraj vsak piškotek posamezno)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # DNS razreševanje po meri HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Uporabi sistemski curl in onemogoči predpomnilnik\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Pridobi kondenzirane JSON podatke"
+  },
+  "mini.long": {
+    "other": "Pridobi kondenzirane JSON podatke.\n\nDolgi nizi so samodejno skrajšani (>30 znakov), polja ohranijo samo prvi in zadnji element.\n\nUporaba:\n  apix mini [args] curl [curl args...]  # Iz HTTP\n  cat data.json | apix mini [args]       # Iz stdin"
+  },
+  "mini.example": {
+    "other": "  # Pridobi kondenziran odgovor iz HTTP\n  apix mini curl https://api.example.com\n\n  # Izhod v formatu YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # Preberi JSON iz stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Pridobi JSON Schema strukturo odgovora"
+  },
+  "schema.long": {
+    "other": "Pridobi strukturo JSON podatkov (JSON Schema) odgovora.\n\nPrivzeto vrne format JSON Schema, podpira branje iz HTTP ali stdin.\n\nUporaba:\n  apix schema [args] curl [curl args...]  # Iz HTTP\n  cat data.json | apix schema [args]       # Iz stdin"
+  },
+  "schema.example": {
+    "other": "  # Pridobi shemo odgovora iz HTTP\n  apix schema curl https://api.example.com\n\n  # Izhod sheme v formatu YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # Generiraj shemo iz stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Izpiši številko različice"
+  },
+  "version.long": {
+    "other": "Izpiši informacije o različici apix."
+  },
+  "version.example": {
+    "other": "  # Preveri različico\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Počisti vse datoteke predpomnilnika"
+  },
+  "clean.long": {
+    "other": "Počisti vse datoteke predpomnilnika HTTP odgovorov, shranjene v začasni mapi.\n\nPredpomnilnik se uporablja za pospešitev ponovljenih HTTP zahtev in izogib večkratnim zahtevam na isti URL med minimiziranjem.\nZaženi ta ukaz, če sumiš, da so podatki v predpomnilniku potekli ali imajo težave."
+  },
+  "clean.example": {
+    "other": "  # Počisti celoten predpomnilnik\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Izhod v formatu JSON"
+  },
+  "flag.text": {
+    "other": "Izhod v besedilnem formatu HTTP protokola"
+  },
+  "flag.serial": {
+    "other": "Uporabi serijski način (minimiziraj enega za drugim)"
+  },
+  "flag.resolve": {
+    "other": "DNS razreševanje po meri HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Vzporednost (privzeto 8, nastavi na 1 za serijski)"
+  },
+  "flag.no-cache": {
+    "other": "Onemogoči predpomnilnik"
+  },
+  "flag.match-mode": {
+    "other": "Način ujemanja: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Pogoj ujemanja izraza (ko je mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Uporabi sistemski ukaz curl"
+  },
+  "flag.pretty": {
+    "other": "Lep izhod"
+  },
+  "flag.out": {
+    "other": "Izhodni format: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Presledki zamika"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametri:"
+  },
+  "msg.examples": {
+    "other": "Primeri:"
+  },
+  "msg.usage": {
+    "other": "Uporaba:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Predpomnilnik je počiščen"
+  }
+}

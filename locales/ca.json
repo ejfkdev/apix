@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Eina de purificació de sol·licituds API i anàlisi de respostes"
+  },
+  "root.long": {
+    "other": "apix - Eina de purificació de sol·licituds API i anàlisi de respostes\n\nAdmet la minimització de sol·licituds HTTP, l'extracció d'esquemes de resposta i la generació de dades JSON condensades.\nUtilitza el client Go HTTP per defecte, no es requereix instal·lació de curl.\n\nOrdres principals:\n  pure    Minimitza les sol·licituds HTTP eliminant paràmetres redundants\n  mini    Obtén dades de resposta JSON condensades\n  schema  Obtén l'estructura JSON Schema de la resposta\n  clean   Neteja la memòria cau de respostes HTTP\n\nFormats de sortida: json, yaml, toml\n\nInici ràpid:\n  # Minimitza la sol·licitud - elimina automàticament headers, query, body, cookie que no afecten la resposta\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Mode sèrie - prova els paràmetres un per un (per a paràmetres amb dependències)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Condició de coincidència personalitzada - basada en codi d'estat o camps JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Obtén resposta condensada (les cadenes llargues es trunquen, els arrays mantenen només el primer/últim)\n  apix mini curl https://api.example.com\n\n  # Obtén l'esquema de resposta\n  apix schema curl https://api.example.com\n\n  # Processa JSON des de stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Neteja la memòria cau\n  apix clean\n\nUtilitza \"apix [command] --help\" per a més informació sobre una ordre."
+  },
+
+  "pure.short": {
+    "other": "Minimitza la sol·licitud HTTP i mostra la sol·licitud mínima"
+  },
+  "pure.long": {
+    "other": "Executa la sol·licitud curl i purifica, mostra la sol·licitud minimitzada.\n\nProva automàticament i elimina headers, query, body, cookie que no afecten l'estructura de la resposta.\nAdmet múltiples formats de sortida: curl (per defecte), json, http.\n\nCoincidència d'expressió (-m expr):\n  Utilitza --match-expr per especificar condicions de coincidència, admet les següents variables:\n    status              Codi d'estat HTTP (int)\n    content_length      Longitud del cos de resposta (int)\n    line_count          Nombre de línies del cos de resposta (int)\n    headers             Mapa d'headers de resposta (accés sense distinció de majúscules/minúscules)\n    body                Dades JSON del cos de resposta (map/any)\n    $.field             Drecera per a body.field\n\n  Operadors: == != < > <= >= && || ! contains()\n\n  Exemples:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Sortida per defecte de l'ordre curl\n  apix pure curl https://httpbin.org/get\n\n  # Mode sèrie (prova un per un, per a paràmetres amb dependències)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Control de paral·lelisme (redueix la concurrència per evitar rate limiting)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Sortida en format JSON (similar a HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Sortida en format de protocol HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # Coincidència de codi d'estat (per defecte és l'estructura)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Coincidència d'expressió: estat 200 i codi JSON igual a 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Coincidència d'expressió: Content-Type conté json (l'accés als headers és sense distinció de majúscules)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Minimització de POST form data\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Minimització de cookie (prova cada cookie individualment)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Resolució DNS personalitzada HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Utilitza el curl del sistema i desactiva la memòria cau\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Obtén dades JSON condensades"
+  },
+  "mini.long": {
+    "other": "Obtén dades JSON condensades.\n\nLes cadenes llargues es trunquen automàticament (>30 caràcters), els arrays mantenen només el primer i l'últim element.\n\nÚs:\n  apix mini [args] curl [curl args...]  # Des d'HTTP\n  cat data.json | apix mini [args]       # Des d'stdin"
+  },
+  "mini.example": {
+    "other": "  # Obtén resposta condensada des d'HTTP\n  apix mini curl https://api.example.com\n\n  # Sortida en format YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # Llegeix JSON des d'stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Obtén l'estructura JSON Schema de la resposta"
+  },
+  "schema.long": {
+    "other": "Obtén l'estructura de dades JSON (JSON Schema) de la resposta.\n\nRetorna el format JSON Schema per defecte, admet lectura des d'HTTP o stdin.\n\nÚs:\n  apix schema [args] curl [curl args...]  # Des d'HTTP\n  cat data.json | apix schema [args]       # Des d'stdin"
+  },
+  "schema.example": {
+    "other": "  # Obtén l'esquema de resposta des d'HTTP\n  apix schema curl https://api.example.com\n\n  # Sortida d'esquema en format YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # Genera esquema des d'stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Mostra el número de versió"
+  },
+  "version.long": {
+    "other": "Mostra la informació de versió d'apix."
+  },
+  "version.example": {
+    "other": "  # Comprova la versió\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Neteja tots els fitxers de memòria cau"
+  },
+  "clean.long": {
+    "other": "Neteja tots els fitxers de memòria cau de respostes HTTP emmagatzemats al directori temporal.\n\nLa memòria cau s'utilitza per accelerar les sol·licituds HTTP repetides i evitar sol·licitar la mateixa URL diverses vegades durant la minimització.\nExecuta aquesta ordre si sospites que les dades de la memòria cau han caducat o tenen problemes."
+  },
+  "clean.example": {
+    "other": "  # Neteja tota la memòria cau\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Sortida en format JSON"
+  },
+  "flag.text": {
+    "other": "Sortida en format de text de protocol HTTP"
+  },
+  "flag.serial": {
+    "other": "Utilitza el mode sèrie (minimitza un per un)"
+  },
+  "flag.resolve": {
+    "other": "Resolució DNS personalitzada HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Paral·lelisme (per defecte 8, estableix a 1 per a sèrie)"
+  },
+  "flag.no-cache": {
+    "other": "Desactiva la memòria cau"
+  },
+  "flag.match-mode": {
+    "other": "Mode de coincidència: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Condició de coincidència d'expressió (quan mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Utilitza l'ordre curl del sistema"
+  },
+  "flag.pretty": {
+    "other": "Sortida amb format"
+  },
+  "flag.out": {
+    "other": "Format de sortida: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Espais d'indentació"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Paràmetres:"
+  },
+  "msg.examples": {
+    "other": "Exemples:"
+  },
+  "msg.usage": {
+    "other": "Ús:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Memòria cau netejada"
+  }
+}

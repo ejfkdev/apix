@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "เครื่องมือทำความสะอาดคำขอ API และการวิเคราะห์การตอบสนอง"
+  },
+  "root.long": {
+    "other": "apix - เครื่องมือทำความสะอาดคำขอ API และการวิเคราะห์การตอบสนอง\n\nรองรับการย่อขนาดคำขอ HTTP, การแยก schema การตอบสนอง และการสร้างข้อมูล JSON แบบบีบอัด\nใช้ HTTP client ของ Go เป็นค่าเริ่มต้น ไม่จำเป็นต้องติดตั้ง curl\n\nคำสั่งหลัก:\n  pure    ย่อขนาดคำขอ HTTP โดยลบพารามิเตอร์ที่ไม่จำเป็น\n  mini    รับข้อมูลการตอบสนอง JSON แบบบีบอัด\n  schema  รับโครงสร้าง JSON Schema ของการตอบสนอง\n  clean   ล้างแคชการตอบสนอง HTTP\n\nรูปแบบเอาท์พุต: json, yaml, toml\n\nเริ่มต้นใช้งานอย่างรวดเร็ว:\n  # ย่อขนาดคำขอ - ลบส่วนหัว, คิวรี่, เนื้อหา, คุกกี้ที่ไม่มีผลต่อการตอบสนองโดยอัตโนมัติ\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # โหมดอนุกรม - ทดสอบพารามิเตอร์ทีละรายการ (สำหรับพารามิเตอร์ที่มีการพึ่งพา)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # เงื่อนไขการจับคู่แบบกำหนดเอง - ตามรหัสสถานะหรือฟิลด์ JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # รับการตอบสนองแบบบีบอัด (สตริงยาวถูกตัด, อาร์เรย์เก็บเฉพาะแรก/สุดท้าย)\n  apix mini curl https://api.example.com\n\n  # รับ schema การตอบสนอง\n  apix schema curl https://api.example.com\n\n  # ประมวลผล JSON จาก stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # ล้างแคช\n  apix clean\n\nใช้ \"apix [command] --help\" เพื่อดูข้อมูลเพิ่มเติมเกี่ยวกับคำสั่ง"
+  },
+
+  "pure.short": {
+    "other": "ย่อขนาดคำขอ HTTP และแสดงคำขอขั้นต่ำ"
+  },
+  "pure.long": {
+    "other": "ดำเนินการคำขอ curl และทำความสะอาด แสดงคำขอที่ย่อขนาดแล้ว\n\nทดสอบและลบส่วนหัว, พารามิเตอร์คิวรี่, เนื้อหา, คุกกี้ที่ไม่มีผลต่อโครงสร้างการตอบสนองโดยอัตโนมัติ\nรองรับหลายรูปแบบเอาท์พุต: curl (ค่าเริ่มต้น), json, http\n\nการจับคู่นิพจน์ (-m expr):\n  ใช้ --match-expr เพื่อระบุเงื่อนไขการจับคู่ รองรับตัวแปรต่อไปนี้:\n    status              รหัสสถานะ HTTP (int)\n    content_length      ความยาวเนื้อหาการตอบสนอง (int)\n    line_count          จำนวนบรรทัดเนื้อหาการตอบสนอง (int)\n    headers             แผนที่ส่วนหัวการตอบสนอง (การเข้าถึงแบบไม่คำนึงถึงตัวพิมพ์)\n    body                ข้อมูล JSON ของเนื้อหาการตอบสนอง (map/any)\n    $.field             ทางลัดสำหรับ body.field\n\n  ตัวดำเนินการ: == != < > <= >= && || ! contains()\n\n  ตัวอย่าง:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # เอาท์พุตคำสั่ง curl เริ่มต้น\n  apix pure curl https://httpbin.org/get\n\n  # โหมดอนุกรม (ทดสอบทีละรายการ สำหรับพารามิเตอร์ที่มีการพึ่งพา)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # ควบคุมการประมวลผลขนาน (ลดการทำงานพร้อมกันเพื่อหลีกเลี่ยงขีดจำกัดอัตรา)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # เอาท์พุตรูปแบบ JSON (คล้าย HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # เอาท์พุตรูปแบบโปรโตคอล HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # จับคู่รหัสสถานะ (ค่าเริ่มต้นคือโครงสร้าง)\n  apix pure -m status curl https://httpbin.org/get\n\n  # การจับคู่นิพจน์: สถานะ 200 และรหัส JSON เท่ากับ 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # การจับคู่นิพจน์: Content-Type มี json (การเข้าถึงส่วนหัวแบบไม่คำนึงถึงตัวพิมพ์)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # ย่อขนาดข้อมูลฟอร์ม POST\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # ย่อขนาดคุกกี้ (ทดสอบแต่ละคุกกี้แยกกัน)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # การแก้ไข DNS แบบกำหนดเอง HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # ใช้ curl ของระบบและปิดใช้งานแคช\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "รับข้อมูล JSON แบบบีบอัด"
+  },
+  "mini.long": {
+    "other": "รับข้อมูล JSON แบบบีบอัด\n\nสตริงยาวจะถูกตัดโดยอัตโนมัติ (>30 ตัวอักษร), อาร์เรย์เก็บเฉพาะองค์ประกอบแรกและสุดท้าย\n\nการใช้งาน:\n  apix mini [args] curl [curl args...]  # จาก HTTP\n  cat data.json | apix mini [args]       # จาก stdin"
+  },
+  "mini.example": {
+    "other": "  # รับการตอบสนองแบบบีบอัดจาก HTTP\n  apix mini curl https://api.example.com\n\n  # เอาท์พุตรูปแบบ YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # อ่าน JSON จาก stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "รับโครงสร้าง JSON Schema ของการตอบสนอง"
+  },
+  "schema.long": {
+    "other": "รับโครงสร้างข้อมูล JSON (JSON Schema) ของการตอบสนอง\n\nคืนค่ารูปแบบ JSON Schema เป็นค่าเริ่มต้น รองรับการอ่านจาก HTTP หรือ stdin\n\nการใช้งาน:\n  apix schema [args] curl [curl args...]  # จาก HTTP\n  cat data.json | apix schema [args]       # จาก stdin"
+  },
+  "schema.example": {
+    "other": "  # รับ schema การตอบสนองจาก HTTP\n  apix schema curl https://api.example.com\n\n  # เอาท์พุต schema รูปแบบ YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # สร้าง schema จาก stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "พิมพ์หมายเลขเวอร์ชัน"
+  },
+  "version.long": {
+    "other": "พิมพ์ข้อมูลเวอร์ชัน apix"
+  },
+  "version.example": {
+    "other": "  # ตรวจสอบเวอร์ชัน\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "ล้างไฟล์แคชทั้งหมด"
+  },
+  "clean.long": {
+    "other": "ล้างไฟล์แคชการตอบสนอง HTTP ทั้งหมดที่จัดเก็บในไดเรกทอรีชั่วคราว\n\nแคชใช้สำหรับเร่งความเร็วคำขอ HTTP ที่ซ้ำกันและหลีกเลี่ยงการขอ URL เดียวกันหลายครั้งระหว่างการย่อขนาด\nเรียกใช้คำสั่งนี้หากคุณสงสัยว่าข้อมูลแคชหมดอายุหรือมีปัญหา"
+  },
+  "clean.example": {
+    "other": "  # ล้างแคชทั้งหมด\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "เอาท์พุตรูปแบบ JSON"
+  },
+  "flag.text": {
+    "other": "เอาท์พุตรูปแบบข้อความโปรโตคอล HTTP"
+  },
+  "flag.serial": {
+    "other": "ใช้โหมดอนุกรม (ย่อขนาดทีละรายการ)"
+  },
+  "flag.resolve": {
+    "other": "การแก้ไข DNS แบบกำหนดเอง HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "การประมวลผลขนาน (ค่าเริ่มต้น 8, ตั้งเป็น 1 สำหรับอนุกรม)"
+  },
+  "flag.no-cache": {
+    "other": "ปิดใช้งานแคช"
+  },
+  "flag.match-mode": {
+    "other": "โหมดการจับคู่: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "เงื่อนไขการจับคู่นิพจน์ (เมื่อ mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "ใช้คำสั่ง curl ของระบบ"
+  },
+  "flag.pretty": {
+    "other": "เอาท์พุตสวยงาม"
+  },
+  "flag.out": {
+    "other": "รูปแบบเอาท์พุต: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "ช่องว่างเยื้อง"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "พารามิเตอร์:"
+  },
+  "msg.examples": {
+    "other": "ตัวอย่าง:"
+  },
+  "msg.usage": {
+    "other": "การใช้งาน:"
+  },
+  "msg.cache_cleaned": {
+    "other": "ล้างแคชแล้ว"
+  }
+}

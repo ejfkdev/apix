@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Инструмент за пречистване на API заявки и анализ на отговори"
+  },
+  "root.long": {
+    "other": "apix - Инструмент за пречистване на API заявки и анализ на отговори\n\nПоддържа минимизиране на HTTP заявки, извличане на схеми на отговори и генериране на кондензирани JSON данни.\nИзползва Go HTTP клиент по подразбиране, не се изисква инсталация на curl.\n\nОсновни команди:\n  pure    Минимизирай HTTP заявки чрез премахване на излишни параметри\n  mini    Получи кондензирани JSON данни за отговор\n  schema  Получи JSON Schema структура на отговор\n  clean   Изчисти HTTP кеша на отговорите\n\nФормати на изход: json, yaml, toml\n\nБърз старт:\n  # Минимизирай заявка - автоматично премахни хедъри, параметри, тяло и бисквитки, които не влияят на отговора\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Сериен режим - тествай параметри един по един (за зависими параметри)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Персонализирано условие за съвпадение - базирано на код на състоянието или JSON полета\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Получи кондензиран отговор (дълги низове са съкратени, масиви пазят само първи/последен)\n  apix mini curl https://api.example.com\n\n  # Получи схема на отговор\n  apix schema curl https://api.example.com\n\n  # Обработи JSON от stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Изчисти кеша\n  apix clean\n\nИзползвай \"apix [command] --help\" за повече информация за команда."
+  },
+
+  "pure.short": {
+    "other": "Минимизирай HTTP заявка и изведи минимална заявка"
+  },
+  "pure.long": {
+    "other": "Изпълни curl заявка и пречисти, изведи минимизирана заявка.\n\nАвтоматично тествай и премахни хедъри, заявки, тяло и бисквитки, които не влияят на структурата на отговора.\nПоддържа множество формати на изход: curl (по подразбиране), json, http.\n\nСъвпадение с израз (-m expr):\n  Използвай --match-expr за задаване на условия за съвпадение, поддържа следните променливи:\n    status              HTTP код на състоянието (int)\n    content_length      Дължина на тялото на отговора (int)\n    line_count          Брой редове на тялото на отговора (int)\n    headers             Карта на хедърите на отговора (достъп без значение от регистъра)\n    body                JSON данни на тялото на отговора (map/any)\n    $.field             Пряк път за body.field\n\n  Оператори: == != < > <= >= && || ! contains()\n\n  Примери:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Изход по подразбиране на curl команда\n  apix pure curl https://httpbin.org/get\n\n  # Сериен режим (тествай един по един, за зависими параметри)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Контрол на паралелизма (намали паралелизъм за избягване на ограничаване на скоростта)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Изход в JSON формат (подобно на HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Изход в HTTP протоколен формат\n  apix pure -t curl https://httpbin.org/get\n\n  # Съвпадение на код на състоянието (по подразбиране е структура)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Съвпадение с израз: състояние 200 и JSON код равен на 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Съвпадение с израз: Content-Type съдържа json (достъпът до хедъри е без значение от регистъра)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Минимизиране на POST формулярни данни\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Минимизиране на бисквитки (тествай всяка бисквитка индивидуално)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Персонализирано DNS разрешаване HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Използвай системен curl и изключи кеша\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Получи кондензирани JSON данни"
+  },
+  "mini.long": {
+    "other": "Получи кондензирани JSON данни.\n\nДългите низове се съкращават автоматично (>30 знака), масивите пазят само първи и последен елементи.\n\nУпотреба:\n  apix mini [args] curl [curl args...]  # От HTTP\n  cat data.json | apix mini [args]       # От stdin"
+  },
+  "mini.example": {
+    "other": "  # Получи кондензиран отговор от HTTP\n  apix mini curl https://api.example.com\n\n  # Изход в YAML формат\n  apix mini -o yaml curl https://api.example.com\n\n  # Прочети JSON от stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Получи JSON Schema структура на отговор"
+  },
+  "schema.long": {
+    "other": "Получи структура на JSON данни (JSON Schema) на отговор.\n\nВръща JSON Schema формат по подразбиране, поддържа четене от HTTP или stdin.\n\nУпотреба:\n  apix schema [args] curl [curl args...]  # От HTTP\n  cat data.json | apix schema [args]       # От stdin"
+  },
+  "schema.example": {
+    "other": "  # Получи схема на отговор от HTTP\n  apix schema curl https://api.example.com\n\n  # Изведи схема в YAML формат\n  apix schema -o yaml curl https://api.example.com\n\n  # Генерирай схема от stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Отпечатай номер на версията"
+  },
+  "version.long": {
+    "other": "Отпечатай информация за версията на apix."
+  },
+  "version.example": {
+    "other": "  # Провери версията\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Изчисти всички кеш файлове"
+  },
+  "clean.long": {
+    "other": "Изчисти всички HTTP кеш файлове на отговорите, съхранени във временната директория.\n\nКешът се използва за ускоряване на повтарящи се HTTP заявки и избягване на многократни заявки към един и същ URL по време на минимизиране.\nСтартирай тази команда, ако подозираш, че данните в кеша са изтекли или имат проблеми."
+  },
+  "clean.example": {
+    "other": "  # Изчисти целия кеш\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Изход в JSON формат"
+  },
+  "flag.text": {
+    "other": "Изход в текстов формат на HTTP протокола"
+  },
+  "flag.serial": {
+    "other": "Използвай сериен режим (минимизирай един по един)"
+  },
+  "flag.resolve": {
+    "other": "Персонализирано DNS разрешаване HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Паралелизъм (по подразбиране 8, задай 1 за сериен)"
+  },
+  "flag.no-cache": {
+    "other": "Изключи кеша"
+  },
+  "flag.match-mode": {
+    "other": "Режим на съвпадение: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Условие за съвпадение с израз (когато mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Използвай системна curl команда"
+  },
+  "flag.pretty": {
+    "other": "Красив изход"
+  },
+  "flag.out": {
+    "other": "Формат на изход: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Интервали за отстъп"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Параметри:"
+  },
+  "msg.examples": {
+    "other": "Примери:"
+  },
+  "msg.usage": {
+    "other": "Употреба:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Кешът е изчистен"
+  }
+}

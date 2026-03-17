@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "Εργαλείο καθαρισμού αιτημάτων API και ανάλυσης απόκρισης"
+  },
+  "root.long": {
+    "other": "apix - Εργαλείο καθαρισμού αιτημάτων API και ανάλυσης απόκρισης\n\nΥποστηρίζει ελαχιστοποίηση αιτημάτων HTTP, εξαγωγή σχημάτων απόκρισης και δημιουργία συμπυκνωμένων δεδομένων JSON.\nΧρησιμοποιεί προεπιλογή τον Go HTTP client, δεν απαιτείται εγκατάσταση curl.\n\nΚύριες εντολές:\n  pure    Ελαχιστοποίηση αιτημάτων HTTP με αφαίρεση περιττών παραμέτρων\n  mini    Λήψη συμπυκνωμένων δεδομένων απόκρισης JSON\n  schema  Λήψη δομής JSON Schema της απόκρισης\n  clean   Καθαρισμός προσωρινής μνήμης απόκρισης HTTP\n\nΜορφές εξόδου: json, yaml, toml\n\nΓρήγορη εκκίνηση:\n  # Ελαχιστοποίηση αιτήματος - αυτόματη αφαίρεση headers, query, body, cookie που δεν επηρεάζουν την απόκριση\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Σειριακή λειτουργία - δοκιμή παραμέτρων μία προς μία (για παραμέτρους με εξαρτήσεις)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Προσαρμοσμένη συνθήκη αντιστοίχισης - βάσει κωδικού κατάστασης ή πεδίων JSON\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Λήψη συμπυκνωμένης απόκρισης (μεγάλες συμβολοσειρές περικόπτονται, οι πίνακες διατηρούν μόνο πρώτο/τελευταίο)\n  apix mini curl https://api.example.com\n\n  # Λήψη σχήματος απόκρισης\n  apix schema curl https://api.example.com\n\n  # Επεξεργασία JSON από stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Καθαρισμός προσωρινής μνήμης\n  apix clean\n\nΧρησιμοποιήστε \"apix [command] --help\" για περισσότερες πληροφορίες σχετικά με μια εντολή."
+  },
+
+  "pure.short": {
+    "other": "Ελαχιστοποίηση αιτήματος HTTP και έξοδος ελαχίστου αιτήματος"
+  },
+  "pure.long": {
+    "other": "Εκτέλεση αιτήματος curl και καθαρισμός, έξοδος ελαχιστοποιημένου αιτήματος.\n\nΑυτόματος έλεγχος και αφαίρεση headers, query, body, cookie που δεν επηρεάζουν τη δομή της απόκρισης.\nΥποστηρίζει πολλαπλές μορφές εξόδου: curl (προεπιλογή), json, http.\n\nΑντιστοίχιση εκφράσεων (-m expr):\n  Χρησιμοποιήστε το --match-expr για να καθορίσετε συνθήκες αντιστοίχισης, υποστηρίζει τις ακόλουθες μεταβλητές:\n    status              Κωδικός κατάστασης HTTP (int)\n    content_length      Μήκος σώματος απόκρισης (int)\n    line_count          Αριθμός γραμμών σώματος απόκρισης (int)\n    headers             Χάρτης headers απόκρισης (πρόσβαση χωρίς διάκριση πεζών-κεφαλαίων)\n    body                Δεδομένα JSON σώματος απόκρισης (map/any)\n    $.field             Συντόμευση για body.field\n\n  Τελεστές: == != < > <= >= && || ! contains()\n\n  Παραδείγματα:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Προεπιλεγμένη έξοδος εντολής curl\n  apix pure curl https://httpbin.org/get\n\n  # Σειριακή λειτουργία (δοκιμή μία προς μία, για παραμέτρους με εξαρτήσεις)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Έλεγχος παραλληλισμού (μείωση ταυτόχρονης εκτέλεσης για αποφυγή rate limiting)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Έξοδος μορφής JSON (παρόμοια με HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Έξοδος μορφής πρωτοκόλλου HTTP\n  apix pure -t curl https://httpbin.org/get\n\n  # Αντιστοίχιση κωδικού κατάστασης (προεπιλογή είναι η δομή)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Αντιστοίχιση έκφρασης: κατάσταση 200 και JSON code ίσο με 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Αντιστοίχιση έκφρασης: Content-Type περιέχει json (η πρόσβαση στα headers είναι χωρίς διάκριση πεζών-κεφαλαίων)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # Ελαχιστοποίηση POST form data\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Ελαχιστοποίηση cookie (δοκιμή κάθε cookie ξεχωριστά)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Προσαρμοσμένη ανάλυση DNS HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Χρήση system curl και απενεργοποίηση προσωρινής μνήμης\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Λήψη συμπυκνωμένων δεδομένων JSON"
+  },
+  "mini.long": {
+    "other": "Λήψη συμπυκνωμένων δεδομένων JSON.\n\nΟι μεγάλες συμβολοσειρές περικόπτονται αυτόματα (>30 χαρακτήρες), οι πίνακες διατηρούν μόνο το πρώτο και το τελευταίο στοιχείο.\n\nΧρήση:\n  apix mini [args] curl [curl args...]  # Από HTTP\n  cat data.json | apix mini [args]       # Από stdin"
+  },
+  "mini.example": {
+    "other": "  # Λήψη συμπυκνωμένης απόκρισης από HTTP\n  apix mini curl https://api.example.com\n\n  # Έξοδος μορφής YAML\n  apix mini -o yaml curl https://api.example.com\n\n  # Ανάγνωση JSON από stdin\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Λήψη δομής JSON Schema της απόκρισης"
+  },
+  "schema.long": {
+    "other": "Λήψη δομής δεδομένων JSON (JSON Schema) της απόκρισης.\n\nΕπιστρέφει μορφή JSON Schema από προεπιλογή, υποστηρίζει ανάγνωση από HTTP ή stdin.\n\nΧρήση:\n  apix schema [args] curl [curl args...]  # Από HTTP\n  cat data.json | apix schema [args]       # Από stdin"
+  },
+  "schema.example": {
+    "other": "  # Λήψη σχήματος απόκρισης από HTTP\n  apix schema curl https://api.example.com\n\n  # Έξοδος σχήματος σε μορφή YAML\n  apix schema -o yaml curl https://api.example.com\n\n  # Δημιουργία σχήματος από stdin\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Εκτύπωση αριθμού έκδοσης"
+  },
+  "version.long": {
+    "other": "Εκτύπωση πληροφοριών έκδοσης apix."
+  },
+  "version.example": {
+    "other": "  # Έλεγχος έκδοσης\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Καθαρισμός όλων των αρχείων προσωρινής μνήμης"
+  },
+  "clean.long": {
+    "other": "Καθαρισμός όλων των αρχείων προσωρινής μνήμης απόκρισης HTTP που είναι αποθηκευμένα στον προσωρινό κατάλογο.\n\nΗ προσωρινή μνήμη χρησιμοποιείται για επιτάχυνση επαναλαμβανόμενων αιτημάτων HTTP και αποφυγή αιτημάτων του ίδιου URL πολλές φορές κατά την ελαχιστοποίηση.\nΕκτελέστε αυτή την εντολή αν υποψιάζεστε ότι τα δεδομένα προσωρινής μνήμης έχουν λήξει ή έχουν προβλήματα."
+  },
+  "clean.example": {
+    "other": "  # Καθαρισμός όλης της προσωρινής μνήμης\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Έξοδος μορφής JSON"
+  },
+  "flag.text": {
+    "other": "Έξοδος μορφής κειμένου πρωτοκόλλου HTTP"
+  },
+  "flag.serial": {
+    "other": "Χρήση σειριακής λειτουργίας (ελαχιστοποίηση μία προς μία)"
+  },
+  "flag.resolve": {
+    "other": "Προσαρμοσμένη ανάλυση DNS HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Παραλληλισμός (προεπιλογή 8, ορίστε σε 1 για σειριακή)"
+  },
+  "flag.no-cache": {
+    "other": "Απενεργοποίηση προσωρινής μνήμης"
+  },
+  "flag.match-mode": {
+    "other": "Λειτουργία αντιστοίχισης: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Συνθήκη αντιστοίχισης έκφρασης (όταν mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Χρήση εντολής system curl"
+  },
+  "flag.pretty": {
+    "other": "Όμορφη έξοδος"
+  },
+  "flag.out": {
+    "other": "Μορφή εξόδου: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Κενά εσοχής"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Παράμετροι:"
+  },
+  "msg.examples": {
+    "other": "Παραδείγματα:"
+  },
+  "msg.usage": {
+    "other": "Χρήση:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Η προσωρινή μνήμη καθαρίστηκε"
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "root.short": {
+    "other": "API-pyyntöjen puhdistus- ja vastausanalyysityökalu"
+  },
+  "root.long": {
+    "other": "apix - API-pyyntöjen puhdistus- ja vastausanalyysityökalu\n\nTukee HTTP-pyyntöjen minimointia, vastaus skeemojen purkamista ja tiivistetyn JSON-datan luomista.\nKäyttää Go HTTP-asiakasta oletuksena, curl-asennusta ei vaadita.\n\nPääkomennot:\n  pure    Minimoi HTTP-pyynnöt poistamalla tarpeettomat parametrit\n  mini    Hae tiivistetty JSON-vastausdata\n  schema  Hae vastauksen JSON Schema-rakenne\n  clean   Puhdista HTTP-vastausvälimuisti\n\nTulostusmuodot: json, yaml, toml\n\nPika-aloitus:\n  # Minimoi pyyntö - poista automaattisesti headerit, query, body, cookie jotka eivät vaikuta vastaukseen\n  apix pure curl https://api.example.com -H \"Authorization: Bearer token\"\n\n  # Sarjamoodi - testaa parametrit yksi kerrallaan (parametreille, joilla on riippuvuuksia)\n  apix pure -s curl https://api.example.com -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Mukautettu täsmäysehto - perustuen statuskoodiin tai JSON-kenttiin\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Hae tiivistetty vastaus (pitkät merkkijonot katkaistaan, taulukot säilyttävät vain ensimmäisen/viimeisen)\n  apix mini curl https://api.example.com\n\n  # Hae vastauksen skeema\n  apix schema curl https://api.example.com\n\n  # Käsittele JSON stdin:stä\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix schema\n\n  # Puhdista välimuisti\n  apix clean\n\nKäytä \"apix [command] --help\" saadaksesi lisätietoja komennosta."
+  },
+
+  "pure.short": {
+    "other": "Minimoi HTTP-pyyntö ja tulosta vähimmäispyyntö"
+  },
+  "pure.long": {
+    "other": "Suorita curl-pyyntö ja puhdista, tulosta minimoitu pyyntö.\n\nTestaa automaattisesti ja poistaa headerit, query, body, cookie jotka eivät vaikuta vastausstruktuuriin.\nTukee useita tulostusmuotoja: curl (oletus), json, http.\n\nLauseketäsmäys (-m expr):\n  Käytä --match-expr määrittääksesi täsmäysehdot, tukee seuraavia muuttujia:\n    status              HTTP-statuskoodi (int)\n    content_length      Vastauskehon pituus (int)\n    line_count          Vastauskehon rivien määrä (int)\n    headers             Vastausheaderit map (kirjainkoko-riippumaton käyttö)\n    body                Vastauskehon JSON-data (map/any)\n    $.field             Oikotie body.field:lle\n\n  Operaattorit: == != < > <= >= && || ! contains()\n\n  Esimerkit:\n    status == 200\n    status == 200 && $.code == 0\n    headers['content-type'].contains('json')\n    status == 200 && line_count < 50\n    $.data != nil"
+  },
+
+  "pure.example": {
+    "other": "  # Oletustuloste curl-komento\n  apix pure curl https://httpbin.org/get\n\n  # Sarjamoodi (testaa yksi kerrallaan, parametreille, joilla on riippuvuuksia)\n  apix pure -s curl https://httpbin.org/get -H \"X-A: 1\" -H \"X-B: 2\"\n\n  # Säädä rinnakkaisuutta (vähennä samanaikaisuutta välttääksesi rate limitingin)\n  apix pure --parallel 4 curl https://httpbin.org/get\n\n  # Tulosta JSON-muoto (samankaltainen kuin HAR)\n  apix pure -j curl https://httpbin.org/get\n\n  # Tulosta HTTP-protokollamuoto\n  apix pure -t curl https://httpbin.org/get\n\n  # Täsmää statuskoodi (oletus on rakenne)\n  apix pure -m status curl https://httpbin.org/get\n\n  # Lauseketäsmäys: status 200 ja JSON code on 0\n  apix pure -m expr --match-expr \"status==200 && $.code==0\" curl https://api.example.com\n\n  # Lauseketäsmäys: Content-Type sisältää json (headerien käyttö on kirjainkoko-riippumatonta)\n  apix pure -m expr --match-expr \"headers['content-type'].contains('json')\" curl https://httpbin.org/get\n\n  # POST form data minimointi\n  apix pure curl -X POST -d \"a=1&b=2&c=3\" https://httpbin.org/post\n\n  # Cookie minimointi (testaa jokainen cookie erikseen)\n  apix pure curl https://httpbin.org/cookies -b \"session=abc;tracking=xyz\"\n\n  # Mukautettu DNS-tunnistus HOST:PORT:IP\n  apix pure curl --resolve \"www.example.org:443:127.0.0.1\" https://www.example.org\n\n  # Käytä järjestelmän curlia ja poista välimuisti käytöstä\n  apix pure -c --no-cache curl https://httpbin.org/get"
+  },
+
+  "mini.short": {
+    "other": "Hae tiivistetty JSON-data"
+  },
+  "mini.long": {
+    "other": "Hae tiivistetty JSON-data.\n\nPitkät merkkijonot katkaistaan automaattisesti (>30 merkkiä), taulukot säilyttävät vain ensimmäisen ja viimeisen elementin.\n\nKäyttö:\n  apix mini [args] curl [curl args...]  # HTTP:stä\n  cat data.json | apix mini [args]       # stdin:stä"
+  },
+  "mini.example": {
+    "other": "  # Hae tiivistetty vastaus HTTP:stä\n  apix mini curl https://api.example.com\n\n  # Tulosta YAML-muoto\n  apix mini -o yaml curl https://api.example.com\n\n  # Lue JSON stdin:stä\n  echo '{\"key\":\"value\"}' | apix mini\n  cat data.json | apix mini -p"
+  },
+
+  "schema.short": {
+    "other": "Hae vastauksen JSON Schema-rakenne"
+  },
+  "schema.long": {
+    "other": "Hae JSON-datarakenne (JSON Schema) vastauksesta.\n\nPalauttaa JSON Schema-muodon oletuksena, tukee lukemista HTTP:stä tai stdin:stä.\n\nKäyttö:\n  apix schema [args] curl [curl args...]  # HTTP:stä\n  cat data.json | apix schema [args]       # stdin:stä"
+  },
+  "schema.example": {
+    "other": "  # Hae vastauksen skeema HTTP:stä\n  apix schema curl https://api.example.com\n\n  # Tulosta YAML-muotoinen skeema\n  apix schema -o yaml curl https://api.example.com\n\n  # Luo skeema stdin:stä\n  echo '{\"id\":1,\"name\":\"test\"}' | apix schema -p"
+  },
+
+  "version.short": {
+    "other": "Tulosta versionumero"
+  },
+  "version.long": {
+    "other": "Tulosta apix-versiotiedot."
+  },
+  "version.example": {
+    "other": "  # Tarkista versio\n  apix version"
+  },
+
+  "clean.short": {
+    "other": "Puhdista kaikki välimuistitiedostot"
+  },
+  "clean.long": {
+    "other": "Puhdista kaikki HTTP-vastausvälimuistitiedostot, jotka on tallennettu väliaikaiskansioon.\n\nVälimuistia käytetään toistuvien HTTP-pyyntöjen nopeuttamiseen ja saman URL:n pyytämisen välttämiseen useita kertoja minimoinnin aikana.\nSuorita tämä komento, jos epäilet välimuistidatan vanhentuneen tai siinä olevan ongelmia."
+  },
+  "clean.example": {
+    "other": "  # Puhdista kaikki välimuisti\n  apix clean"
+  },
+
+  "flag.json": {
+    "other": "Tulosta JSON-muoto"
+  },
+  "flag.text": {
+    "other": "Tulosta HTTP-protokollan tekstimuoto"
+  },
+  "flag.serial": {
+    "other": "Käytä sarjamoodia (minimoi yksi kerrallaan)"
+  },
+  "flag.resolve": {
+    "other": "Mukautettu DNS-tunnistus HOST:PORT:IP"
+  },
+  "flag.parallel": {
+    "other": "Rinnakkaisuus (oletus 8, aseta 1 sarjatilaan)"
+  },
+  "flag.no-cache": {
+    "other": "Poista välimuisti käytöstä"
+  },
+  "flag.match-mode": {
+    "other": "Täsmäystila: structure|status|expr|header|content|similarity|line-count|keyword|regex"
+  },
+  "flag.match-expr": {
+    "other": "Lauseketäsmäysehto (kun mode=expr)"
+  },
+  "flag.use-curl": {
+    "other": "Käytä järjestelmän curl-komentoa"
+  },
+  "flag.pretty": {
+    "other": "Kaunis tuloste"
+  },
+  "flag.out": {
+    "other": "Tulostusmuoto: json|yaml|toml"
+  },
+  "flag.indent": {
+    "other": "Sisennysvälilyönnit"
+  },
+
+  "usage.pure": {
+    "other": "apix pure [args] curl [curl args...]"
+  },
+  "usage.mini": {
+    "other": "apix mini [args] curl [curl args...]\n  cat data.json | apix mini [args]"
+  },
+  "usage.schema": {
+    "other": "apix schema [args] curl [curl args...]\n  cat data.json | apix schema [args]"
+  },
+
+  "msg.params": {
+    "other": "Parametrit:"
+  },
+  "msg.examples": {
+    "other": "Esimerkit:"
+  },
+  "msg.usage": {
+    "other": "Käyttö:"
+  },
+  "msg.cache_cleaned": {
+    "other": "Välimuisti puhdistettu"
+  }
+}

@@ -483,11 +483,32 @@ func parseHeader(header string, headers map[string][]string) error {
 func parseCookie(cookie string, cookies map[string]string) error {
 	parts := strings.SplitN(cookie, "=", 2)
 	if len(parts) == 2 {
-		cookies[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		// 清理 cookie 值中的非法字符（根据 RFC 6265）
+		value = sanitizeCookieValue(value)
+		cookies[key] = value
 	} else {
 		cookies[cookie] = ""
 	}
 	return nil
+}
+
+
+// sanitizeCookieValue 清理 cookie 值中的非法字符 (RFC 6265)
+func sanitizeCookieValue(value string) string {
+	var result strings.Builder
+	for _, r := range value {
+		switch r {
+		case ';', ',', ' ', '\t', '\n', '\r':
+			continue
+		default:
+			if r >= 0x20 && r <= 0x7E || r > 0x7F {
+				result.WriteRune(r)
+			}
+		}
+	}
+	return result.String()
 }
 
 // parseResolve 解析 --resolve 参数
@@ -509,5 +530,3 @@ func parseResolve(resolve string, resolveMap map[string]string) {
 		resolveMap[host+":"+port] = addr
 	}
 }
-
-

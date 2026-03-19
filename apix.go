@@ -1468,7 +1468,10 @@ func shellQuote(s string) string {
 	if s == "" {
 		return "''"
 	}
-	needs := strings.ContainsAny(s, " \t\n'\"\\$`")
+	// 需要引号的 shell 特殊字符
+	// 空格、引号、反斜杠、美元符、反引号
+	// & ; | * ? ( ) [ ] { } < > # ! ~
+	needs := strings.ContainsAny(s, " \t\n'\"\\$`&;|*?()[]{}<>#!~")
 	if !needs {
 		return s
 	}

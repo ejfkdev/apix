@@ -143,22 +143,15 @@ func (c *CachedRestyClient) doRequest(args []string) (*HTTPResponse, error) {
 	// 创建请求
 	req := client.R()
 
-	// 设置 headers（跳过空值）
+	// 设置 headers（允许空值）
 	for key, values := range reqConfig.headers {
 		for _, value := range values {
-			if value != "" {
-				req.SetHeader(key, value)
-			}
+			req.SetHeader(key, value)
 		}
 	}
 
-	// 设置 cookies（空值设为单个空格绕过 resty 检查，或跳过）
+	// 设置 cookies（允许空值）
 	for key, value := range reqConfig.cookies {
-		if value == "" {
-			// 空值 cookie：使用空格替代（net/http 会 trimming）
-			// 或者跳过空值 cookie
-			continue
-		}
 		req.SetCookie(&http.Cookie{
 			Name:  key,
 			Value: value,
